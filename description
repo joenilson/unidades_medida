@@ -5,4 +5,6 @@ Plugin de FacturaScripts para manejo de unidades_medida.
 <li>Reportes con agrupación en distintas unidades de medida</a>
 <li></li>
 </ul>
-Requisitos son facturacion_base y presupuestos_y_pedidos
+Requisitos son facturacion_base y presupuestos_y_pedidos.
+<br/>
+Licencia LGPL 3

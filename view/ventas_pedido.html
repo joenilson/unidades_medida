@@ -7,7 +7,7 @@
 <!--{$lineas=$fsc->pedido->get_lineas()}-->
 {if="$fsc->pedido->editable"}
 <script type="text/javascript">
-   numlineas = {function="count($lineas)"};
+   numlineas = {function="count($lineas)"}; 
    fs_nf0 = {#FS_NF0#};
    fs_nf0_art = {#FS_NF0_ART#};
    all_impuestos = {function="json_encode($fsc->impuesto->all())"};

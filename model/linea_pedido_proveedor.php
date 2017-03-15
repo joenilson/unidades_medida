@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 require_once 'plugins/presupuestos_y_pedidos/model/core/linea_pedido_proveedor.php';
 
 class linea_pedido_proveedor extends FacturaScripts\model\linea_pedido_proveedor

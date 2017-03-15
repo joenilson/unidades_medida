@@ -1,6 +1,6 @@
 <?php
 /*
- * This file is part of FacturaScripts
+ * This file is part of facturacion_base
  * Copyright (C) 2014-2017  Carlos Garcia Gomez  neorazorx@gmail.com
  * Copyright (C) 2014-2015  Francesc Pineda Segarra  shawe.ewahs@gmail.com
  *
@@ -41,6 +41,7 @@ require_model('tarifa.php');
 
 class nueva_venta extends fs_controller
 {
+   public $agencia;
    public $agente;
    public $almacen;
    public $articulo;
@@ -58,7 +59,6 @@ class nueva_venta extends fs_controller
    public $results;
    public $serie;
    public $tipo;
-   public $agencia;
    public $articulo_um;
   public $um;
 
@@ -268,21 +268,21 @@ class nueva_venta extends fs_controller
 
          if( isset($_POST['tipo']) )
          {
-            if($_POST['tipo'] == 'albaran')
-            {
-               $this->nuevo_albaran_cliente();
-            }
-            else if($_POST['tipo'] == 'factura')
+            if($_POST['tipo'] == 'factura')
             {
                $this->nueva_factura_cliente();
             }
-            else if($_POST['tipo'] == 'presupuesto' AND class_exists('presupuesto_cliente') )
+            else if($_POST['tipo'] == 'albaran')
             {
-               $this->nuevo_presupuesto_cliente();
+               $this->nuevo_albaran_cliente();
             }
             else if($_POST['tipo'] == 'pedido' AND class_exists('pedido_cliente') )
             {
                $this->nuevo_pedido_cliente();
+            }
+            else if($_POST['tipo'] == 'presupuesto' AND class_exists('presupuesto_cliente') )
+            {
+               $this->nuevo_presupuesto_cliente();
             }
 
             /// si el cliente no tiene cifnif nos guardamos el que indique
@@ -487,10 +487,6 @@ class nueva_venta extends fs_controller
         $this->results[$i]->lista_um = substr($listaUM,0,strlen($listaUM)-1);
       }
 
-//Metodos que busca las unidades de medidas del articulo
-
-
-
       /// ejecutamos las funciones de las extensiones
       foreach($this->extensions as $ext)
       {
@@ -574,17 +570,15 @@ class nueva_venta extends fs_controller
                 'dto' => floatval($_POST['dto']),
                 'codimpuesto' => $_POST['codimpuesto'],
                 'cantidad' => floatval($_POST['cantidad']),
-                'txt' => $com->nombreatributo.' - '.$com->valor
+                'txt' => $com->nombreatributo.' - '.$com->valor,
+                'codigo' => $com->codigo,
+                'stockfis' => $com->stockfis,
             );
          }
       }
    }
 
-
-
    //Metodo que se agrego para ver las plantillas
-
-
    private function get_um_articulo()
    {
       /// cambiamos la plantilla HTML
@@ -596,8 +590,6 @@ class nueva_venta extends fs_controller
       header('Content-Type: application/json');
       echo json_encode(array($informacion));
    }
-
-
    //****************
 
    public function get_tarifas_articulo($ref)
@@ -777,14 +769,27 @@ class nueva_venta extends fs_controller
                      {
                         $trazabilidad = TRUE;
                      }
+
+                     if($_POST['codcombinacion_'.$i])
+                     {
+                        $linea->codcombinacion = $_POST['codcombinacion_'.$i];
+                     }
                   }
 
                   if( $linea->save() )
                   {
-                     if( $articulo AND isset($_POST['stock']) )
+                     if($articulo)
                      {
-                        /// descontamos del stock
-                        $articulo->sum_stock($albaran->codalmacen, 0 - $linea->cantidad);
+                        if( !$articulo->controlstock AND $linea->cantidad > $articulo->stockfis )
+                        {
+                           $this->new_error_msg("No hay suficiente stock del artículo <b>".$linea->referencia.'</b>.');
+                           $continuar = FALSE;
+                        }
+                        else if( isset($_POST['stock']) )
+                        {
+                           /// descontamos del stock
+                           $articulo->sum_stock($albaran->codalmacen, 0 - $linea->cantidad, FALSE, $linea->codcombinacion);
+                        }
                      }
 
                      $albaran->neto += $linea->pvptotal;
@@ -837,12 +842,10 @@ class nueva_venta extends fs_controller
                else
                   $this->new_error_msg("¡Imposible actualizar el <a href='".$albaran->url()."'>".FS_ALBARAN."</a>!");
             }
-            else if( $albaran->delete() )
+            else if( !$albaran->delete() )
             {
-               $this->new_message(FS_ALBARAN." eliminado correctamente.");
-            }
-            else
                $this->new_error_msg("¡Imposible eliminar el <a href='".$albaran->url()."'>".FS_ALBARAN."</a>!");
+            }
          }
          else
             $this->new_error_msg("¡Imposible guardar el ".FS_ALBARAN."!");
@@ -1018,14 +1021,27 @@ class nueva_venta extends fs_controller
                      {
                         $trazabilidad = TRUE;
                      }
+
+                     if($_POST['codcombinacion_'.$i])
+                     {
+                        $linea->codcombinacion = $_POST['codcombinacion_'.$i];
+                     }
                   }
 
                   if( $linea->save() )
                   {
-                     if( $articulo AND isset($_POST['stock']) )
+                     if($articulo)
                      {
-                        /// descontamos del stock
-                        $articulo->sum_stock($factura->codalmacen, 0 - $linea->cantidad);
+                        if( !$articulo->controlstock AND $linea->cantidad > $articulo->stockfis )
+                        {
+                           $this->new_error_msg("No hay suficiente stock del artículo <b>".$linea->referencia.'</b>.');
+                           $continuar = FALSE;
+                        }
+                        else if( isset($_POST['stock']) )
+                        {
+                           /// descontamos del stock
+                           $articulo->sum_stock($factura->codalmacen, 0 - $linea->cantidad, FALSE, $linea->codcombinacion);
+                        }
                      }
 
                      $factura->neto += $linea->pvptotal;
@@ -1079,12 +1095,10 @@ class nueva_venta extends fs_controller
                else
                   $this->new_error_msg("¡Imposible actualizar la <a href='".$factura->url()."'>Factura</a>!");
             }
-            else if( $factura->delete() )
+            else if( !$factura->delete() )
             {
-               $this->new_message("Factura eliminada correctamente.");
-            }
-            else
                $this->new_error_msg("¡Imposible eliminar la <a href='".$factura->url()."'>Factura</a>!");
+            }
          }
          else
             $this->new_error_msg("¡Imposible guardar la Factura!");
@@ -1277,6 +1291,10 @@ class nueva_venta extends fs_controller
                   if($articulo)
                   {
                      $linea->referencia = $articulo->referencia;
+                     if($_POST['codcombinacion_'.$i])
+                     {
+                        $linea->codcombinacion = $_POST['codcombinacion_'.$i];
+                     }
                   }
 
                   if( $linea->save() )
@@ -1478,10 +1496,10 @@ class nueva_venta extends fs_controller
                   }
 
                   $linea->irpf = floatval($_POST['irpf_'.$i]);
-                  
-                  
+
+
                   $linea->dtopor = floatval($_POST['dto_'.$i]);
-                  
+
                   $linea->pvptotal = floatval($_POST['neto_'.$i]);
 
                   //Si el factor es igual al factor_base del articulo entonces en cantidad guardamos el mismo valor
@@ -1495,16 +1513,20 @@ class nueva_venta extends fs_controller
                     $linea->cantidad = floatval($_POST['cantidad_'.$i]*$_POST['factor_'.$i]);
                     $linea->pvpunitario = floatval(round($_POST['pvp_'.$i]/$_POST['factor_'.$i],4));
                   }
-                  
+
                   $linea->pvpsindto = ($linea->pvpunitario * $linea->cantidad);
                   $linea->cantidad_um = floatval($_POST['cantidad_'.$i]);
                   $umdata = explode("|",$_POST['um_'.$i]);
                   $linea->codum = $umdata[0];
-                  
+
                   $articulo = $art0->get($_POST['referencia_'.$i]);
                   if($articulo)
                   {
                      $linea->referencia = $articulo->referencia;
+                     if($_POST['codcombinacion_'.$i])
+                     {
+                        $linea->codcombinacion = $_POST['codcombinacion_'.$i];
+                     }
                   }
 
                   if( $linea->save() )

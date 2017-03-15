@@ -1,5 +1,4 @@
 <?php
-
 /*
  * Copyright (C) 2016 Joe Nilson <joenilson at gmail.com>
  *
@@ -90,7 +89,7 @@ class unidadmedida extends fs_model {
             return $this->get($this->codum);
         }
     }
-    
+
     public function en_uso(){
         $sql = "SELECT count(codum) as cantidad from articulo_unidadmedida where codum = ".$this->var2str($this->codum).";";
         $data = $this->db->select($sql);
@@ -99,7 +98,7 @@ class unidadmedida extends fs_model {
         }else{
             return false;
         }
-        
+
     }
 
     public function save() {

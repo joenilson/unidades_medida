@@ -1,5 +1,4 @@
 <?php
-
 /*
  * Copyright (C) 2017 Joe Nilson <joenilson at gmail.com>
  *
@@ -22,6 +21,6 @@ require_once 'plugins/facturacion_base/model/core/linea_albaran_cliente.php';
  *
  * @author Joe Nilson <joenilson at gmail.com>
  */
-class linea_albaran_cliente extends FacturaScripts\model\linea_albaran_cliente{
+class linea_albaran_cliente extends FacturaScripts\model\linea_albaran_cliente {
     //put your code here
 }

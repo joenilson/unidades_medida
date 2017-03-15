@@ -12,18 +12,17 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 require_once 'plugins/presupuestos_y_pedidos/model/core/linea_pedido_cliente.php';
 
 class linea_pedido_cliente extends FacturaScripts\model\linea_pedido_cliente
 {
    public $cantidad_um;
    public $codum;
-   
+
    public function __construct($t = FALSE) {
        if($t){
            $this->cantidad_um = $t['cantidad_um'];
@@ -34,7 +33,7 @@ class linea_pedido_cliente extends FacturaScripts\model\linea_pedido_cliente
        }
        parent::__construct($t);
    }
-   
+
    public function save()
    {
       if( $this->test() )
@@ -61,7 +60,7 @@ class linea_pedido_cliente extends FacturaScripts\model\linea_pedido_cliente
                     .", mostrar_cantidad = ".$this->var2str($this->mostrar_cantidad)
                     .", mostrar_precio = ".$this->var2str($this->mostrar_precio)
                     ."  WHERE idlinea = ".$this->var2str($this->idlinea).";";
-            
+
             return $this->db->exec($sql);
          }
          else
@@ -87,7 +86,7 @@ class linea_pedido_cliente extends FacturaScripts\model\linea_pedido_cliente
                     .",".$this->var2str($this->orden)
                     .",".$this->var2str($this->mostrar_cantidad)
                     .",".$this->var2str($this->mostrar_precio).");";
-            
+
             if( $this->db->exec($sql) )
             {
                $this->idlinea = $this->db->lastval();
