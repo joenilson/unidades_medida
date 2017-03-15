@@ -135,8 +135,16 @@ function recalcular()
          {
             $("#recargo_"+i).val( $("#recargo_"+i).val().replace(",",".") );
          }
-
-         l_uds = parseFloat( $("#cantidad_"+i).val() );
+            if($('#codum_'+i).val()!= 'UNIDAD'){
+                
+            l_uds = parseFloat($("#cantidadX_"+i).val());
+            
+          }else{
+              
+             l_uds = parseFloat($("#cantidad_"+i).val());
+ 
+            }   
+            
          l_pvp = parseFloat( $("#pvp_"+i).val() );
          l_dto = parseFloat( $("#dto_"+i).val() );
          l_neto = l_uds*l_pvp*(100-l_dto)/100;
