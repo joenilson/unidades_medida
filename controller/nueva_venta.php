@@ -34,10 +34,10 @@ require_model('pais.php');
 require_model('pedido_cliente.php');
 require_model('presupuesto_cliente.php');
 require_model('regularizacion_iva.php');
-require_model('unidadmedida.php');
-require_model('articulo_unidadmedida.php');
 require_model('serie.php');
 require_model('tarifa.php');
+require_model('unidadmedida.php');
+require_model('articulo_unidadmedida.php');
 
 class nueva_venta extends fs_controller
 {
@@ -71,8 +71,6 @@ class nueva_venta extends fs_controller
    {
       $this->agencia = new agencia_transporte();
       $this->cliente = new cliente();
-      $this->articulo_um = new articulo_unidadmedida();
-      $this->um = new unidadmedida();
       $this->cliente_s = FALSE;
       $this->direccion = FALSE;
       $this->fabricante = new fabricante();
@@ -81,7 +79,9 @@ class nueva_venta extends fs_controller
       $this->results = array();
       $this->grupo = new grupo_clientes();
       $this->pais = new pais();
-
+      $this->articulo_um = new articulo_unidadmedida();
+      $this->um = new unidadmedida();
+      
       /// cargamos la configuración
       $fsvar = new fs_var();
       $this->nuevocli_setup = $fsvar->array_get(
@@ -479,12 +479,12 @@ class nueva_venta extends fs_controller
          $this->results[$i]->factor_base = ($umArticulo)?$umArticulo->factor:1;
          $umAdicionales = $this->articulo_um->getByTipo($value->referencia, 'se_compra');
          $listaUM = "";
-        if($umAdicionales){
-           foreach($umAdicionales as $um){
+         if($umAdicionales){
+            foreach($umAdicionales as $um){
                $listaUM .= $um->codum.'|'.$um->factor.',';
-           }
-        }
-        $this->results[$i]->lista_um = substr($listaUM,0,strlen($listaUM)-1);
+            }
+         }
+         $this->results[$i]->lista_um = substr($listaUM,0,strlen($listaUM)-1);
       }
 
       /// ejecutamos las funciones de las extensiones
@@ -577,20 +577,6 @@ class nueva_venta extends fs_controller
          }
       }
    }
-
-   //Metodo que se agrego para ver las plantillas
-   private function get_um_articulo()
-   {
-      /// cambiamos la plantilla HTML
-      //$this->template = FALSE;
-      $um_art = new articulo_unidadmedida();
-      $referencia = \filter_input(INPUT_GET, 'referencia4um');
-      $informacion = $um_art->get($referencia);
-
-      header('Content-Type: application/json');
-      echo json_encode(array($informacion));
-   }
-   //****************
 
    public function get_tarifas_articulo($ref)
    {
@@ -1504,14 +1490,14 @@ class nueva_venta extends fs_controller
 
                   //Si el factor es igual al factor_base del articulo entonces en cantidad guardamos el mismo valor
                   if($_POST['factor_'.$i]==$_POST['factor_base_'.$i]){
-                    $linea->cantidad = floatval($_POST['cantidad_'.$i]);
-                    $linea->pvpunitario = floatval($_POST['pvp_'.$i]);
+                     $linea->cantidad = floatval($_POST['cantidad_'.$i]);
+                     $linea->pvpunitario = floatval($_POST['pvp_'.$i]);
                   }else{
-                    //Si el factor es diferente al factor_base entonces
-                    //Convertimos la cantidad a la unidad de medida base
-                    //Guardamos el precio con el pvp de la unidad base
-                    $linea->cantidad = floatval($_POST['cantidad_'.$i]*$_POST['factor_'.$i]);
-                    $linea->pvpunitario = floatval(round($_POST['pvp_'.$i]/$_POST['factor_'.$i],4));
+                     //Si el factor es diferente al factor_base entonces
+                     //Convertimos la cantidad a la unidad de medida base
+                     //Guardamos el precio con el pvp de la unidad base
+                     $linea->cantidad = floatval($_POST['cantidad_'.$i]*$_POST['factor_'.$i]);
+                     $linea->pvpunitario = floatval(round($_POST['pvp_'.$i]/$_POST['factor_'.$i],4));
                   }
 
                   $linea->pvpsindto = ($linea->pvpunitario * $linea->cantidad);

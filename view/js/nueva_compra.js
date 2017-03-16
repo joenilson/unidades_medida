@@ -1,5 +1,5 @@
 /*
- * This file is part of FacturaScripts
+ * This file is part of facturacion_base
  * Copyright (C) 2014-2017  Carlos Garcia Gomez  neorazorx@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
@@ -138,18 +138,16 @@ function recalcular()
              
             $("#recargo_"+i).val( $("#recargo_"+i).val().replace(",",".") );
          }
-    
+         /**
+          * Para validar el total de la vista que se trae desde el controlador
+          * cuando se hace una actualización de las cantidades
+          * el campo atotal no coincide con la suma de las cantidades
+          */
          if($('#codum_'+i).val()!= 'UNIDAD'){
-                 l_uds = parseFloat($("#cantidadX_"+i).val());
-                 
-               
-            }else{
-                
+            l_uds = parseFloat($("#cantidadX_"+i).val());
+         }else{
             l_uds = parseFloat($("#cantidad_"+i).val());
-            }
-            
-         l_udsEditar = parseFloat($("#cantidad_"+i).val());
-         //l_uds = parseFloat($("#cantidad_"+i).val());
+         }
          l_pvp = parseFloat( $("#pvp_"+i).val() );
          l_dto = parseFloat( $("#dto_"+i).val() );
          l_neto = l_uds*l_pvp*(100-l_dto)/100;
@@ -528,14 +526,14 @@ function new_articulo()
                $("#search_results").show();
                $("#kiwimaru_results").hide();
                $("#nuevo_articulo").hide();
-                    
+
                if(precio_compra == 'coste')
                {
-                  add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].coste, 0, datos[0].codimpuesto, datos[0].umBase, datos[0].listaUM);
+                  add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].coste, 0, datos[0].codimpuesto, datos[0].codcombinacion, datos[0].umBase, datos[0].listaUM);
                }
                else
                {
-                  add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].pvp, 0, datos[0].codimpuesto, datos[0].umBase, datos[0].listaUM);
+                  add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].pvp, 0, datos[0].codimpuesto, datos[0].codcombinacion, datos[0].umBase, datos[0].listaUM);
                }
             }
          }
@@ -615,20 +613,20 @@ function buscar_articulos()
                if(val.secompra)
                {
                   var funcion = "add_articulo('"+val.referencia+"','"+descripcion+"','"+precio+"','"
-                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                   var funcion1 = "add_articulo('"+val.referencia+"','"+descripcion+"','"+val.coste+"','"
-                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                   var funcion2 = "add_articulo('"+val.referencia+"','"+descripcion+"','"+val.pvp+"','"
-                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
 
                   if(val.tipo)
                   {
                      funcion = "add_articulo_"+val.tipo+"('"+val.referencia+"','"+descripcion+"','"
-                             +precio+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                             +precio+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                      funcion1 = "add_articulo_"+val.tipo+"('"+val.referencia+"','"+descripcion+"','"
-                             +val.coste+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                             +val.coste+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                      funcion2 = "add_articulo_"+val.tipo+"('"+val.referencia+"','"+descripcion+"','"
-                             +val.pvp+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                             +val.pvp+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                   }
 
                   items.push(tr_aux+"<td><a href=\"#\" onclick=\"get_precios('"+val.referencia+"')\" title=\"más detalles\">\n\
@@ -722,23 +720,6 @@ function buscar_articulos()
    }
 }
 
-function kiwi_import(ref,desc,pvp)
-{
-   $("#nav_articulos li").each(function() {
-      $(this).removeClass("active");
-   });
-   $("#li_nuevo_articulo").addClass('active');
-   $("#search_results").hide();
-   $("#kiwimaru_results").hide();
-   $("#nuevo_articulo").show();
-   document.f_nuevo_articulo.referencia.value = ref;
-   document.f_nuevo_articulo.refproveedor.value = ref;
-   document.f_nuevo_articulo.descripcion.value = desc;
-   document.f_nuevo_articulo.coste.value = pvp;
-   document.f_nuevo_articulo.pvp.value = pvp;
-   document.f_nuevo_articulo.referencia.select();
-}
-
 /**
  * Funciones para control de unidad de medida de los artículos
  */
@@ -749,7 +730,7 @@ function aux_all_um(num,um_base,factor_base,listaUM)
    for(var i=0; i<lista_um.length; i++){
        var line = lista_um[i].split('|');
        var nueva_lista_um = {};
-       nueva_lista_um.codum = line[0];
+       nueva_lista_um.id = line[0];
        nueva_lista_um.factor = line[1];
        buscador[line[0]] = nueva_lista_um;
    }
@@ -757,10 +738,10 @@ function aux_all_um(num,um_base,factor_base,listaUM)
    for(var i=0; i<all_um.length; i++)
    {
       if(um_base === all_um[i].codum){
-        html += "<option value=\""+all_um[i].codum+"|1"+"\" selected=\"\">"+all_um[i].codum+"</option>";
+        html += "<option value=\""+all_um[i].codum+"|1"+"\" selected=\"\">"+all_um[i].nombre+"</option>";
       } else {
         if(buscador[all_um[i].codum]){
-            html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].codum+"</option>";
+            html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].nombre+"</option>";
         }
       }
    }
@@ -800,19 +781,18 @@ function convertir_um(num)
        //Y finalmente saco el precio por display de 24 unidades
        //multiplicando el precio base * el factor del display (24)
        var nuevoPrecio = basePrecio*factor;
-       $("#pvp_"+num).val(nuevoPrecio);
+       $("#pvp_"+num).html(nuevoPrecio);
    }else{
        //La cantidad dice 1 display y la vamos a cambiar a 1 unidad
        // dividimos el precio actual entre el factor actual
        nuevoPrecio = precio/factor_actual;
-       $("#pvp_"+num).val(nuevoPrecio);
+       $("#pvp_"+num).html(nuevoPrecio);
    }
    //Actualizamos el factor actual de la unidad de medida nueva
    $("#factor_"+num).val(factor);
    //Cuando actualizamos todos los valores recalculamos
    recalcular();
 }
-
 
 $(document).ready(function() {
     
