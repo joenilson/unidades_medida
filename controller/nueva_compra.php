@@ -382,8 +382,9 @@ class nueva_compra extends fs_controller
                 $listaUM .= $um->codum.'|'.$um->factor.',';
             }
          }else{
-            $listaUM .= "UNIDAD|1";
+            $listaUM .= "UNIDAD|1,";
          }
+         $this->results[$i]->validador = $umAdicionales;
          $this->results[$i]->lista_um = substr($listaUM,0,strlen($listaUM)-1);
       }
 
@@ -1273,8 +1274,10 @@ class nueva_compra extends fs_controller
    }
 
    public function agregar_um($articulo){
-       $articulo->umBase = $this->articulo_um->getBase($articulo->referencia);
-       $articulo->listaUM = $this->articulo_um->getByTipo($articulo->referencia,'se_compra');
+       $umBase = $this->articulo_um->getBase($articulo->referencia);
+       $articulo->umBase = ($umBase)?$umBase:1;
+       $umCompra = $this->articulo_um->getByTipo($articulo->referencia,'se_compra');
+       $articulo->listaUM = ($umCompra)?$umCompra:array(array("codum"=>'UNIDAD','base'=>true,'factor'=>1,'se_compra'=>true));
        return $articulo;
    }
 }

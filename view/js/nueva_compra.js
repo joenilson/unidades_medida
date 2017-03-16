@@ -528,14 +528,14 @@ function new_articulo()
                $("#li_mis_articulos").addClass('active');
                $("#search_results").show();
                $("#nuevo_articulo").hide();
-
+               
                if(precio_compra == 'coste')
                {
-                  add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].coste, 0, datos[0].codimpuesto, datos[0].umBase, datos[0].listaUM);
+                  add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].coste, 0, datos[0].codimpuesto, datos[0].codcombinacion, datos[0].umBase, datos[0].listaUM);
                }
                else
                {
-                  add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].pvp, 0, datos[0].codimpuesto, datos[0].umBase, datos[0].listaUM);
+                  add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].pvp, 0, datos[0].codimpuesto, datos[0].codcombinacion, datos[0].umBase, datos[0].listaUM);
                }
             }
          }
@@ -618,20 +618,20 @@ function buscar_articulos()
                if(val.secompra)
                {
                   var funcion = "add_articulo('"+val.referencia+"','"+descripcion+"','"+precio+"','"
-                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                   var funcion1 = "add_articulo('"+val.referencia+"','"+descripcion+"','"+val.coste+"','"
-                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                   var funcion2 = "add_articulo('"+val.referencia+"','"+descripcion+"','"+val.pvp+"','"
-                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                          +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
 
                   if(val.tipo)
                   {
                      funcion = "add_articulo_"+val.tipo+"('"+val.referencia+"','"+descripcion+"','"
-                             +precio+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                             +precio+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                      funcion1 = "add_articulo_"+val.tipo+"('"+val.referencia+"','"+descripcion+"','"
-                             +val.coste+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                             +val.coste+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                      funcion2 = "add_articulo_"+val.tipo+"('"+val.referencia+"','"+descripcion+"','"
-                             +val.pvp+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+                             +val.pvp+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                   }
 
                   items.push(tr_aux+"<td><a href=\"#\" onclick=\"get_precios('"+val.referencia+"')\" title=\"más detalles\">\n\
@@ -673,6 +673,80 @@ function buscar_articulos()
          });
       }
    }
+}
+
+/**
+ * Funciones para control de unidad de medida de los artículos
+ */
+function aux_all_um(num,um_base,factor_base,listaUM)
+{
+   var lista_um = listaUM.split(',');
+   var buscador = [];
+   for(var i=0; i<lista_um.length; i++){
+       var line = lista_um[i].split('|');
+       var nueva_lista_um = {};
+       nueva_lista_um.id = line[0];
+       nueva_lista_um.factor = line[1];
+       buscador[line[0]] = nueva_lista_um;
+   }
+   var html = "<td><select id=\"um_"+num+"\" class=\"form-control\" name=\"um_"+num+"\" onchange=\"convertir_um('"+num+"')\">";
+   for(var i=0; i<all_um.length; i++)
+   {
+      if(um_base === all_um[i].codum){
+        html += "<option value=\""+all_um[i].codum+"|1"+"\" selected=\"\">"+all_um[i].nombre+"</option>";
+      } else {
+        if(buscador[all_um[i].codum]){
+            html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].nombre+"</option>";
+        }
+      }
+   }
+   html += "</select>\n";
+   html += "<input type=\"hidden\" id=\"factor_"+num+"\" name=\"factor_"+num+"\" value=\""+factor_base+"\">";
+   html += "<input type=\"hidden\" id=\"factor_base_"+num+"\" name=\"factor_base_"+num+"\" value=\""+factor_base+"\">";
+
+   return html;
+}
+
+/**
+ * //Ejecutamos la conversión para la linea seleccionada
+ * //Para esto tomamos como base que la cantidad digitada se quiere convertir a
+ * //la unidad de medida elegida
+ * //puede ser que digito 1 y no es una UNIDAD sino es 1 CAJA
+ * //entonces el usuario digita 1 y modifica la U. Medida a CAJA
+ * //al hacer esto se convierte 1 a CAJA factorizando el precio con la nueva
+ * //unidad de medida pero manteniendo el 1
+ * //En caso de que cambie de unidad de medida se actualiza el precio
+ * //si cambia la cantidad, entonces se ejecuta el recalculo del neto sin modificar el mismo
+ * @param {type} num
+ * @returns cantidad,precio
+ */
+function convertir_um(num)
+{
+   var um_destino = $("#um_"+num).val();
+   var factor_actual = $("#factor_"+num).val();
+   var precio = $("#pvp_"+num).val();
+   var factor_base = $("#factor_base_"+num).val();
+   var valores_um_destino = um_destino.split('|');
+   var um_destino = valores_um_destino[0];
+   var factor = valores_um_destino[1];
+   if(factor !== factor_base){
+       //tengo 1 caja de 100 y la necesito sacar el precio para 1 display de 24 unidades
+       //Dividimos el precio actual entre el factor_actual para obtener nuevamente el precio unitario
+       var basePrecio = precio/factor_actual;
+       //Y finalmente saco el precio por display de 24 unidades
+       //multiplicando el precio base * el factor del display (24)
+       var nuevoPrecio = basePrecio*factor;
+       $("#pvp_"+num).html(nuevoPrecio);
+   }else{
+       //La cantidad dice 1 display y la vamos a cambiar a 1 unidad
+       // dividimos el precio actual entre el factor actual
+       nuevoPrecio = precio/factor_actual;
+       $("#pvp_"+num).html(nuevoPrecio);
+   }
+   //Actualizamos el factor actual de la unidad de medida nueva
+   $("#factor_"+num).val(factor);
+   //Cuando actualizamos todos los valores recalculamos
+   recalcular();
 }
 
 $(document).ready(function() {
