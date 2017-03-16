@@ -1,5 +1,5 @@
 /*
- * This file is part of FacturaScripts
+ * This file is part of facturacion_base
  * Copyright (C) 2014-2017  Carlos Garcia Gomez  neorazorx@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
@@ -135,16 +135,16 @@ function recalcular()
          {
             $("#recargo_"+i).val( $("#recargo_"+i).val().replace(",",".") );
          }
-            if($('#codum_'+i).val()!= 'UNIDAD'){
-                
+         /**
+          * Para validar el total de la vista que se trae desde el controlador
+          * cuando se hace una actualización de las cantidades
+          * el campo atotal no coincide con la suma de las cantidades
+          */
+         if($('#codum_'+i).val()!= 'UNIDAD'){
             l_uds = parseFloat($("#cantidadX_"+i).val());
-            
-          }else{
-              
-             l_uds = parseFloat($("#cantidad_"+i).val());
- 
-            }   
-            
+         }else{
+            l_uds = parseFloat($("#cantidad_"+i).val());
+         }
          l_pvp = parseFloat( $("#pvp_"+i).val() );
          l_dto = parseFloat( $("#dto_"+i).val() );
          l_neto = l_uds*l_pvp*(100-l_dto)/100;

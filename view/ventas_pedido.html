@@ -15,28 +15,31 @@
    all_series = {function="json_encode($fsc->serie->all())"};
    cliente = {function="json_encode($fsc->cliente_s)"};
    nueva_venta_url = '{$fsc->nuevo_pedido_url}';
-   kiwimaru_url = '{#FS_COMMUNITY_URL#}/index.php?page=kiwimaru';
-    all_series1 = {function="json_encode($fsc->articulo_um->all())"};
-    function Convert_um_edit(num){
-     
-      var factor_product = 0;
-      var cant = parseFloat($('#cantidad_'+num).val());
-          
-        all_series1.forEach(function(current,index,arr){
-        
-            if(current.codum == $('#codum_'+num).val()){
-            
-            factor_product = current.factor;
-           }
-       });
-        factor_product = (factor_product * cant);
-         $('#cantidadX_'+num).val(factor_product);
-          recalcular();   
-    }
-    
+
    {if="$fsc->cliente_s"}
    all_direcciones = {function="json_encode($fsc->cliente_s->get_direcciones())"};
    {/if}
+
+   function cambiar_cliente() {
+      $("#p_cambiar_cliente").removeClass('hidden');
+      document.f_pedido.ac_cliente.readOnly = false;
+      document.f_pedido.ac_cliente.value = '';
+      document.f_pedido.ac_cliente.focus();
+   }        
+        
+   all_umedida = {function="json_encode($fsc->articulo_um->all())"};
+   function Convert_um_edit(num){
+      var factor_product = 0;
+      var cant = parseFloat($('#cantidad_'+num).val());
+      all_umedida.forEach(function(current,index,arr){
+         if(current.codum == $('#codum_'+num).val()){
+            factor_product = current.factor;
+         }
+      });
+      factor_product = (factor_product * cant);
+      $('#cantidadX_'+num).val(factor_product);
+      recalcular();   
+   }
    
    $(document).ready(function () {
       $('#numlineas').val(numlineas);
@@ -126,14 +129,14 @@
                   {/if}
                {/loop}
             </div>
-            {if="$fsc->pedido->idalbaran"}
+            
             <div class="btn-group">
+               {if="$fsc->pedido->idalbaran"}
                <a class="btn btn-sm btn-info text-capitalize" href="{$fsc->pedido->albaran_url()}">
                   <span class="glyphicon glyphicon-eye-open"></span>
                   <span class="hidden-xs">&nbsp;Ver {#FS_ALBARAN#}</span>
                </a>
-            </div>
-            {else}
+               {else}
                <div class="btn-group">
                   {if="$fsc->pedido->status==0"}
                   <button type="button" class="btn btn-sm btn-warning dropdown-toggle" data-toggle="dropdown">
@@ -178,7 +181,13 @@
                      {/if}
                   </ul>
                </div>
-            {/if}
+               {/if}
+               {if="$fsc->historico"}
+               <a href="#" class="btn btn-sm btn-default" data-toggle="modal" data-target="#modal_historico" title="Historial del {#FS_PEDIDO#}">
+                  <i class="fa fa-book" aria-hidden="true"></i>
+               </a>
+               {/if}
+            </div>
          </div>
          <div class="col-xs-4 text-right">
             <div class="btn-group">
@@ -253,13 +262,16 @@
             <div class='form-group{if="!$fsc->cliente_s"} has-warning{/if}'>
                Cliente actual:
                <div class="input-group">
-                  <input class="form-control" type="text" name="ac_cliente" id="ac_cliente" value="{$fsc->pedido->nombrecliente}" placeholder="Buscar" autocomplete="off"/>
-                  <span class="input-group-btn">
-                     <button class="btn btn-default" type="button" onclick="document.f_pedido.ac_cliente.value = '';document.f_pedido.ac_cliente.focus();">
+                  <input class="form-control" type="text" name="ac_cliente" id="ac_cliente" value="{$fsc->pedido->nombrecliente}" placeholder="Buscar" readonly="" autocomplete="off"/>
+                  <span class="input-group-btn" title="Cambiar cliente">
+                     <button class="btn btn-default" type="button" onclick="cambiar_cliente()">
                         <span class="glyphicon glyphicon-edit"></span>
                      </button>
                   </span>
                </div>
+               <p id="p_cambiar_cliente" class="help-block hidden">
+                  Para cambiar el nombre o el {#FS_CIFNIF#}, pero no el cliente, ve a la pestaña detalles.
+               </p>
             </div>
          </div>
          {/if}
@@ -327,10 +339,10 @@
          </div>
       </div>
    </div>
+
   <div role="tabpanel">
       <ul class="nav nav-tabs" role="tablist">
          <li role="presentation" class="active">
-             
             <a href="#lineas_p" aria-controls="lineas_p" role="tab" data-toggle="tab">
                <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
                <span class="hidden-xs">&nbsp;Líneas</span>
@@ -344,7 +356,6 @@
             </a>
          </li>
          {if="$fsc->pedido->editable"}
-       
          <li role="presentation">
             <a href="#envio" aria-controls="envio" role="tab" data-toggle="tab">
                <span class="glyphicon glyphicon-road" aria-hidden="true"></span>
@@ -393,6 +404,7 @@
                         <td>
                            <input type="hidden" name="idlinea_{$counter}" value="{$value->idlinea}"/>
                            <input type="hidden" name="referencia_{$counter}" value="{$value->referencia}"/>
+                           <input type="hidden" name="codcombinacion_{$counter}" value="{$value->codcombinacion}"/>
                            {if="$value->idlineapresupuesto"}
                            <div class="input-group">
                               <a target="_blank" href="index.php?page=ventas_presupuesto&id={$value->idpresupuesto}" class="input-group-addon" title="ver {#FS_PRESUPUESTO#}">P</a>
@@ -407,42 +419,35 @@
                            {/if}
                         </td>
                         <td><textarea class="form-control" name="desc_{$counter}" rows="1">{$value->descripcion}</textarea></td>
-                           <td>
+                        <td>
                             {if="$value->codum =='UNIDAD' "}
                             <input type="number" step="any" id="cantidad_{$counter}" class="form-control text-right" name="cantidad_{$counter}"
                                    value="{$value->cantidad}" onkeyup="recalcular()" onchange="recalcular();Convert_um_edit('{$counter}')" />
-                             
                             {else}
                              <input type="number" step="any" id="cantidad_{$counter}" class="form-control text-right" name="cantidad_{$counter}"
                                     value="{$value->cantidad_um}"  onkeyup="recalcular()"  onchange="recalcular();Convert_um_edit('{$counter}')" autocomplete="off" value="1"/>
                             {/if}
                         </td>
-                        
-                          <td>
+                        <td>
                             <input type="text" id="cantidadX_{$counter}" class="form-control text-right" name="cantidadX_{$counter}"
                                    value="{$value->cantidad}"  disabled="disable" onchange="recalcular()"/>
                         </td>
-
-                          <td>
-
-                          <select class="form-control" id="codum_{$counter}" name="codum_{$counter}"  onchange="convertir_um{$counter})">
+                        <td>
+                           <select class="form-control" id="codum_{$counter}" name="codum_{$counter}"  onchange="convertir_um{$counter})">
                               {if="$value->codum == ''"}
-                             <option value="UNIDAD" selected="">UNIDAD</option>
-                             {else}
+                              <option value="UNIDAD" selected="">UNIDAD</option>
+                              {else}
                               <option value="{$value->codum}" selected="">{$value->codum}</option>
-
-                             {/if}
-                            {loop="$fsc->articulo_um->get($value->referencia)"}
-                              {if="$value1->referencia==$value->referencia or $value1->codum== $value->codum"}
-                              <option value="{$value->codum}" >{$value->codum}</option>
-
-                               {else}
-                               <option value="UNIDAD">UNIDAD</option>
                               {/if}
-
+                              {loop="$fsc->articulo_um->get($value->referencia)"}
+                                 {if="$value1->referencia==$value->referencia or $value1->codum== $value->codum"}
+                                 <option value="{$value->codum}" >{$value->codum}</option>
+                                 {else}
+                                 <option value="UNIDAD">UNIDAD</option>
+                                 {/if}
                               {/loop}
                            </select>
-                            </td>
+                        </td>
                         <td>
                            <button class="btn btn-sm btn-danger" type="button" onclick="$('#linea_{$counter}').remove();recalcular();">
                               <span class="glyphicon glyphicon-trash"></span>
@@ -490,7 +495,7 @@
                      <tr class="info">
                         <td><input id="i_new_line" class="form-control" type="text" placeholder="Buscar para añadir..." autocomplete="off"/></td>
                         <td colspan="3">
-                           <a href="#" class="btn btn-sm btn-default" title="Añadir sin buscar" onclick="return add_linea_libre();">
+                           <a href="#" class="btn btn-sm btn-default" title="Añadir sin buscar" onclick="return add_linea_libre()">
                               <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
                            </a>
                         </td>
@@ -511,7 +516,7 @@
                                   value="0" onchange="recalcular()" autocomplete="off"/>
                         </td>
                      </tr>
-                     {if="$fsc->user->admin"}
+                     {if="$fsc->user->admin AND FS_DB_HISTORY"}
                      <tr>
                         <td colspan="6"></td>
                         <td class="text-right">{$fsc->show_precio($fsc->pedido->neto, $fsc->pedido->coddivisa)}</td>
@@ -996,11 +1001,6 @@
             <li id="li_mis_articulos">
                <a href="#" id="b_mis_articulos">Mi catálogo</a>
             </li>
-            <li id="li_kiwimaru">
-               <a href="#" id="b_kiwimaru">
-                  <span class="glyphicon glyphicon-globe"></span>
-               </a>
-            </li>
             <li id="li_nuevo_articulo">
                <a href="#" id="b_nuevo_articulo">
                   <span class="glyphicon glyphicon-plus"></span>&nbsp; Nuevo
@@ -1008,7 +1008,6 @@
             </li>
          </ul>
          <div id="search_results"></div>
-         <div id="kiwimaru_results"></div>
          <div id="nuevo_articulo" class="modal-body" style="display: none;">
             <form name="f_nuevo_articulo" action="{$fsc->url()}" method="post" class="form">
                <div class="container-fluid">
@@ -1371,6 +1370,53 @@
                <i class="fa fa-retweet" aria-hidden="true"></i>
                <span class="hidden-xs">&nbsp; Nueva versión</span>
             </a>
+         </div>
+      </div>
+   </div>
+</div>
+
+<div class="modal" id="modal_historico">
+   <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+         <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title">
+               <i class="fa fa-book" aria-hidden="true"></i>
+               Histórico del {#FS_PEDIDO#} {$fsc->pedido->codigo}
+            </h4>
+         </div>
+         <div class="table-responsive">
+            <table class="table table-hover">
+               <thead>
+                  <tr>
+                     <th>Tipo</th>
+                     <th>Documento</th>
+                     <th class="text-right">Importe</th>
+                     <th class="text-right">Fecha</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <tr class="warning">
+                     <td class="text-capitalize">{#FS_PEDIDO#}</td>
+                     <td><b>Este {#FS_PEDIDO#}</b></td>
+                     <td class="text-right">{$fsc->show_precio($fsc->pedido->total, $fsc->pedido->coddivisa)}</td>
+                     <td class="text-right">{$fsc->pedido->fecha}</td>
+                  </tr>
+                  {loop="$fsc->historico"}
+                  <tr>
+                     <td class="text-capitalize">{$value['documento']}</td>
+                     <td>
+                        <a href="{$value['modelo']->url()}" target="_blank">{$value['modelo']->codigo}</a>
+                        {if="$value['modelo']->numero2"}{$value['modelo']->numero2}{/if}
+                     </td>
+                     <td class="text-right">{$fsc->show_precio($value['modelo']->total, $value['modelo']->coddivisa)}</td>
+                     <td class="text-right">{$value['modelo']->fecha}</td>
+                  </tr>
+                  {/loop}
+               </tbody>
+            </table>
          </div>
       </div>
    </div>

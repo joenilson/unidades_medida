@@ -31,6 +31,7 @@ var siniva = false;
 var irpf = 0;
 var solo_con_stock = true;
 var all_um = [];
+
 function usar_cliente(codcliente)
 {
    if(nueva_venta_url !== '')
@@ -501,9 +502,8 @@ function aux_all_um(num,um_base,factor_base,listaUM)
    return html;
 }
 
-
-function add_articulo_atributos(ref,desc,pvp,dto,codimpuesto,cantidad){
-
+function add_articulo_atributos(ref,desc,pvp,dto,codimpuesto,cantidad)
+{
    $.ajax({
       type: 'POST',
       url: nueva_venta_url,

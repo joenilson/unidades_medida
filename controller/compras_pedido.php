@@ -1,6 +1,6 @@
 <?php
 /*
- * This file is part of FacturaScripts
+ * This file is part of presupuestos_y_pedidos
  * Copyright (C) 2014-2017  Carlos Garcia Gomez       neorazorx@gmail.com
  * Copyright (C) 2014-2015  Francesc Pineda Segarra   shawe.ewahs@gmail.com
  *
@@ -110,7 +110,6 @@ class compras_pedido extends fs_controller
       else if( isset($_GET['id']) )
       {
          $this->pedido = $pedido->get($_GET['id']);
-
       }
 
       if($this->pedido)
@@ -161,7 +160,8 @@ class compras_pedido extends fs_controller
       }
    }
 
-   private function nueva_version(){
+   private function nueva_version()
+   {
       $pedi = clone $this->pedido;
       $pedi->idpedido = NULL;
       $pedi->idalbaran = NULL;
@@ -216,7 +216,6 @@ class compras_pedido extends fs_controller
       else
          return $this->page->url();
    }
-
 
    private function modificar()
    {
@@ -349,25 +348,17 @@ class compras_pedido extends fs_controller
                      if($value->idlinea == intval($_POST['idlinea_' . $num]))
                      {
                         $encontrada = TRUE;
-
-                           $this->unidadmedida = new unidadmedida();
-                           
-                           $unidadM = $this->unidadmedida->get($_POST['codum_'. $num]);
-                           
-                             
-                  
-                         if($_POST['codum_'.$num] == "UNIDAD"){
-                             
-                             $lineas[$k]->cantidad_um = floatval($_POST['cantidad_' . $num]);
-                             $lineas[$k]->cantidad = floatval($_POST['cantidad_' . $num]);
-                             $lineas[$k]->codum = $unidadM->codum;
-
-                         }else{
-                          $lineas[$k]->cantidad_um = floatval($_POST['cantidad_'.$num]);
-                          $lineas[$k]->cantidad = floatval($_POST['cantidad_' .$num] * $unidadM->cantidad); //Cantidad por el factor de la unidad que no sale. 
-                          $lineas[$k]->codum = $unidadM->codum;
-                         
-                         }
+                        $this->unidadmedida = new unidadmedida();
+                        $unidadM = $this->unidadmedida->get($_POST['codum_'. $num]);
+                        if($_POST['codum_'.$num] == "UNIDAD"){
+                           $lineas[$k]->cantidad_um = floatval($_POST['cantidad_' . $num]);
+                           $lineas[$k]->cantidad = floatval($_POST['cantidad_' . $num]);
+                           $lineas[$k]->codum = $unidadM->codum;
+                        }else{
+                           $lineas[$k]->cantidad_um = floatval($_POST['cantidad_'.$num]);
+                           $lineas[$k]->cantidad = floatval($_POST['cantidad_' .$num] * $unidadM->cantidad); //Cantidad por el factor de la unidad que no sale. 
+                           $lineas[$k]->codum = $unidadM->codum;
+                        }
                         $lineas[$k]->pvpunitario = floatval($_POST['pvp_' . $num]);
                         $lineas[$k]->dtopor = floatval($_POST['dto_' . $num]);
                         $lineas[$k]->pvpsindto = ($value->cantidad * $value->pvpunitario);
@@ -390,14 +381,15 @@ class compras_pedido extends fs_controller
                            $lineas[$k]->recargo = floatval($_POST['recargo_' . $num]);
                         }
 
-                        if( $lineas[$k]->save()){
-                            
+                        if( $lineas[$k]->save() )
+                        {
                            $this->pedido->neto += $value->pvptotal;
                            $this->pedido->totaliva += $value->pvptotal * $value->iva / 100;
                            $this->pedido->totalirpf += $value->pvptotal * $value->irpf / 100;
                            $this->pedido->totalrecargo += $value->pvptotal * $value->recargo / 100;
 
-                           if($value->irpf > $this->pedido->irpf){
+                           if($value->irpf > $this->pedido->irpf)
+                           {
                               $this->pedido->irpf = $value->irpf;
                            }
                         }
@@ -427,19 +419,21 @@ class compras_pedido extends fs_controller
                         $linea->recargo = floatval($_POST['recargo_' . $num]);
                      }
 
-                  
-                     $linea->irpf = floatval($_POST['irpf_'.$num]);
+                     $linea->irpf = floatval($_POST['irpf_' . $num]);
                      $linea->cantidad = floatval($_POST['cantidad_' . $num]);
                      $linea->pvpunitario = floatval($_POST['pvp_' . $num]);
                      $linea->dtopor = floatval($_POST['dto_' . $num]);
                      $linea->pvpsindto = ($linea->cantidad * $linea->pvpunitario);
                      $linea->pvptotal = ($linea->cantidad * $linea->pvpunitario * (100 - $linea->dtopor) / 100);
 
-
                      $art0 = $articulo->get($_POST['referencia_' . $num]);
                      if($art0)
                      {
                         $linea->referencia = $art0->referencia;
+                        if($_POST['codcombinacion_' . $num])
+                        {
+                           $linea->codcombinacion = $_POST['codcombinacion_' . $num];
+                        }
                      }
 
                      if( $linea->save() )
@@ -467,16 +461,15 @@ class compras_pedido extends fs_controller
             $this->pedido->totalrecargo = round($this->pedido->totalrecargo, FS_NF0);
             $this->pedido->total = $this->pedido->neto + $this->pedido->totaliva - $this->pedido->totalirpf + $this->pedido->totalrecargo;
             
-
             if( abs(floatval($_POST['atotal']) - $this->pedido->total) >= .02 )
             {
                $this->new_error_msg("El total difiere entre el controlador y la vista (" . $this->pedido->total .
-                       " frente a " . $_POST['atotal'] . "). Debes refrescar la pantalla si persiste el error favor informar.");
+                       " frente a " . $_POST['atotal'] . "). Debes informar del error.");
             }
          }
       }
 
-      if( $this->pedido->save())
+      if( $this->pedido->save() )
       {
          $this->new_message(ucfirst(FS_PEDIDO) . " modificado correctamente.");
          $this->new_change(ucfirst(FS_PEDIDO) . ' Proveedor ' . $this->pedido->codigo, $this->pedido->url());
@@ -531,8 +524,9 @@ class compras_pedido extends fs_controller
       }
       else if( $albaran->save() )
       {
-         $continuar = TRUE;
          $art0 = new articulo();
+         $continuar = TRUE;
+         $trazabilidad = FALSE;
 
          foreach($this->pedido->get_lineas() as $l)
          {
@@ -551,6 +545,7 @@ class compras_pedido extends fs_controller
             $n->pvpunitario = $l->pvpunitario;
             $n->recargo = $l->recargo;
             $n->referencia = $l->referencia;
+            $n->codcombinacion = $l->codcombinacion;
 
             if( $n->save() )
             {
@@ -560,14 +555,18 @@ class compras_pedido extends fs_controller
                   $articulo = $art0->get($n->referencia);
                   if($articulo)
                   {
-                     $articulo->sum_stock($albaran->codalmacen, $l->cantidad, isset($_POST['costemedio']) );
+                     $articulo->sum_stock($albaran->codalmacen, $l->cantidad, isset($_POST['costemedio']), $l->codcombinacion);
+                     if($articulo->trazabilidad)
+                     {
+                        $trazabilidad = TRUE;
                   }
                }
             }
-            else {
-               $continuar = FALSE;
+            }
+            else
+            {
                $this->new_error_msg("¡Imposible guardar la línea el artículo " . $n->referencia . "! ");
-               break;
+               $continuar = FALSE;
             }
          }
 
@@ -576,9 +575,13 @@ class compras_pedido extends fs_controller
             $this->pedido->idalbaran = $albaran->idalbaran;
             $this->pedido->editable = FALSE;
 
-            if( $this->pedido->save())
+            if( $this->pedido->save() )
             {
                $this->new_message("<a href='" . $albaran->url() . "'>" . ucfirst(FS_ALBARAN) . '</a> generado correctamente.');
+               if($trazabilidad)
+               {
+                  header('Location: index.php?page=compras_trazabilidad&doc=albaran&id='.$albaran->idalbaran);
+               }
             }
             else
             {

@@ -20,15 +20,15 @@
 require_model('almacen.php');
 require_model('articulo_combinacion.php');
 require_model('articulo_proveedor.php');
-require_model('articulo_unidadmedida.php');
 require_model('asiento_factura.php');
 require_model('fabricante.php');
 require_model('familia.php');
 require_model('forma_pago.php');
 require_model('pedido_proveedor.php');
 require_model('proveedor.php');
-require_model('unidadmedida.php');
 require_model('regularizacion_iva.php');
+require_model('unidadmedida.php');
+require_model('articulo_unidadmedida.php');
 
 class nueva_compra extends fs_controller
 {
@@ -36,7 +36,6 @@ class nueva_compra extends fs_controller
    public $almacen;
    public $articulo;
    public $articulo_prov;
-   public $articulo_um;
    public $divisa;
    public $fabricante;
    public $familia;
@@ -48,6 +47,7 @@ class nueva_compra extends fs_controller
    public $serie;
    public $tipo;
    public $um;
+   public $articulo_um;   
 
    public function __construct()
    {
@@ -57,13 +57,13 @@ class nueva_compra extends fs_controller
    protected function private_core()
    {
       $this->articulo_prov = new articulo_proveedor();
-      $this->articulo_um = new articulo_unidadmedida();
-      $this->um = new unidadmedida();
       $this->fabricante = new fabricante();
       $this->familia = new familia();
       $this->impuesto = new impuesto();
       $this->proveedor = new proveedor();
       $this->proveedor_s = FALSE;
+      $this->articulo_um = new articulo_unidadmedida();
+      $this->um = new unidadmedida();
       $this->results = array();
 
       if( isset($_REQUEST['tipo']) )
@@ -438,18 +438,6 @@ class nueva_compra extends fs_controller
             );
          }
       }
-   }
-
-   private function get_um_articulo()
-   {
-      /// cambiamos la plantilla HTML
-      //$this->template = FALSE;
-      $um_art = new articulo_unidadmedida();
-      $referencia = \filter_input(INPUT_GET, 'referencia4um');
-      $informacion = $um_art->get($referencia);
-
-      header('Content-Type: application/json');
-      echo json_encode(array($informacion));
    }
 
    private function nuevo_pedido_proveedor()
