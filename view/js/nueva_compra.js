@@ -41,7 +41,7 @@ function usar_proveedor(codproveedor)
       $.getJSON(nueva_compra_url, 'datosproveedor='+codproveedor, function(json) {
          proveedor = json;
          document.f_buscar_articulos.codproveedor.value = proveedor.codproveedor;
-         if(proveedor.regimeniva == 'Exento')
+          if(proveedor.regimeniva == 'Exento')
          {
             irpf = 0;
             for(var j=0; j<numlineas; j++)
@@ -408,7 +408,6 @@ function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,codcombinacion,um_ba
    {
       codcombinacion = '';
    }
-
    desc = Base64.decode(desc);
    $("#lineas_albaran").append("<tr id=\"linea_"+numlineas+"\">\n\
       <td><input type=\"hidden\" name=\"idlinea_"+numlineas+"\" value=\"-1\"/>\n\
@@ -457,23 +456,23 @@ function add_articulo_atributos(ref,desc,pvp,dto,codimpuesto)
 function aux_items(num,um_base,factor_base,listaUM){
     
    console.log(listaUM);
-   var html = "<td><select id=\"um_"+num+"\" class=\"form-control\" name=\"um_"+num+"\" onchange=\"convertir_um('"+num+"')\">";
+   var html = "<td><select id=\"codum_"+num+"\" class=\"form-control\" name=\"codum_"+num+"\" onchange=\"convertir_um('"+num+"')\">";
    html += "<option value=\""+listaUM+"|1"+"\" selected=\"\">"+listaUM+"</option>";
    html += "</select>\n";
    return html;  
 }
 
 function add_linea_libre(){  
-
+  var unit = ["UNIDAD"];
   $("#lineas_albaran").append("<tr id=\"linea_"+numlineas+"\">\n\
   <td><input type=\"hidden\" name=\"idlinea_"+numlineas+"\" value=\"-1\"/>\n\
-  <input type=\"hidden\" name=\"referencia_"+numlineas+"\"/>\n\
+  <input type=\"hidden\"  id=\"referencia_"+numlineas+"\" name=\"referencia_"+numlineas+"\" />\n\
   <input type=\"hidden\" name=\"codcombinacion_"+numlineas+"\"/>\n\
   <div class=\"form-control\"></div></td>\n\
   <td><textarea class=\"form-control\" id=\"desc_"+numlineas+"\" name=\"desc_"+numlineas+"\" rows=\"1\"></textarea></td>\n\
    <td><input type=\""+input_number+"\" step=\"any\" id=\"cantidad_"+numlineas+"\" class=\"form-control text-right\" name=\"cantidad_"+numlineas+
     "\" onchange=\"recalcular()\" onkeyup=\"recalcular()\" autocomplete=\"off\" value=\"1\"/></td>\n\
-     "+aux_items(numlineas,1,1,"UNIDAD")+"\n\
+     "+aux_items(numlineas,1,1,unit)+"\n\
     <td><button class=\"btn btn-sm btn-danger\" type=\"button\" onclick=\"$('#linea_"+numlineas+"').remove();recalcular();\">\n\
     <span class=\"glyphicon glyphicon-trash\"></span></button></td>\n\
      <td><input type=\"text\" class=\"form-control text-right\" id=\"pvp_"+numlineas+"\" name=\"pvp_"+numlineas+"\" value=\"0\"\n\
@@ -740,8 +739,11 @@ function buscar_articulos()
 /**
  * Funciones para control de unidad de medida de los artículos
  */
+
+
 function aux_all_um(num,um_base,factor_base,listaUM)
 {
+
    var lista_um = listaUM.split(',');
    var buscador = [];
    for(var i=0; i<lista_um.length; i++){
@@ -758,13 +760,13 @@ function aux_all_um(num,um_base,factor_base,listaUM)
    {
       if(um_base === all_um[i].codum){
         html += "<option value=\""+all_um[i].codum+"|1"+"\" selected=\"\">"+all_um[i].codum+"</option>";
-        
-   
+        console.log(all_um[0].codum + 'if funciona'); 
       }else{
           
         if(buscador[all_um[i].codum]){
            html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].codum+"</option>";
-        }
+           console.log(all_um[0].codum +'De lo contrario'); 
+          }
       }
    }
    html += "</select>\n";
@@ -823,6 +825,7 @@ $(document).ready(function() {
     
    $("#i_new_line").click(function() {
       $("#i_new_line").val("");
+        console.log('Cliquear');
       $("#nav_articulos li").each(function() {
          $(this).removeClass("active");
       });

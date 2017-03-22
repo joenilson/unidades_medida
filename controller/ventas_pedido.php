@@ -1,6 +1,6 @@
 <?php
 /*
- * This file is part of presupuestos_y_pedidos
+ * This file is part of FacturaScripts
  * Copyright (C) 2014-2017  Carlos Garcia Gomez       neorazorx@gmail.com
  * Copyright (C) 2014-2015  Francesc Pineda Segarra   shawe.ewahs@gmail.com
  *
@@ -18,45 +18,49 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-require_model('albaran_proveedor.php');
-require_model('almacen.php');
+require_model('agencia_transporte.php');
+require_model('albaran_cliente.php');
 require_model('articulo.php');
+require_model('cliente.php');
 require_model('divisa.php');
 require_model('ejercicio.php');
 require_model('fabricante.php');
+require_model('factura_cliente.php');
 require_model('familia.php');
 require_model('forma_pago.php');
 require_model('impuesto.php');
-require_model('linea_pedido_proveedor.php');
-require_model('pedido_proveedor.php');
-require_model('proveedor.php');
+require_model('linea_pedido_cliente.php');
+require_model('pais.php');
+require_model('pedido_cliente.php');
+require_model('presupuesto_cliente.php');
 require_model('serie.php');
 require_model('articulo_unidadmedida.php');
-require_model('unidadmedida.php');
 
-class compras_pedido extends fs_controller
+class ventas_pedido extends fs_controller
 {
+   public $agencia;
    public $agente;
    public $allow_delete;
    public $almacen;
+   public $cliente;
+   public $cliente_s;
    public $divisa;
    public $ejercicio;
    public $fabricante;
    public $familia;
    public $forma_pago;
+   public $historico;
    public $impuesto;
    public $nuevo_pedido_url;
+   public $pais;
    public $pedido;
-   public $proveedor;
-   public $proveedor_s;
    public $serie;
    public $versiones;
-   public $medida;
    public $articulo_um;
-   public $unidadmedida;
+
    public function __construct()
    {
-      parent::__construct(__CLASS__, ucfirst(FS_PEDIDO), 'compras', FALSE, FALSE);
+      parent::__construct(__CLASS__, ucfirst(FS_PEDIDO), 'ventas', FALSE, FALSE);
    }
 
    protected function private_core()
@@ -64,10 +68,14 @@ class compras_pedido extends fs_controller
       /// ¿El usuario tiene permiso para eliminar en esta página?
       $this->allow_delete = $this->user->allow_delete_on(__CLASS__);
 
-      $this->ppage = $this->page->get('compras_pedidos');
+      $this->ppage = $this->page->get('ventas_pedidos');
       $this->agente = FALSE;
 
+      $pedido = new pedido_cliente();
+      $this->pedido = FALSE;
       $this->almacen = new almacen();
+      $this->cliente = new cliente();
+      $this->cliente_s = FALSE;
       $this->divisa = new divisa();
       $this->ejercicio = new ejercicio();
       $this->fabricante = new fabricante();
@@ -75,32 +83,23 @@ class compras_pedido extends fs_controller
       $this->forma_pago = new forma_pago();
       $this->impuesto = new impuesto();
       $this->nuevo_pedido_url = FALSE;
-      $pedido = new pedido_proveedor();
-      $this->pedido = FALSE;
-      $this->proveedor = new proveedor();
-      $this->proveedor_s = FALSE;
+      $this->pais = new pais();
       $this->serie = new serie();
+      $this->agencia = new agencia_transporte();
       $this->articulo_um = new articulo_unidadmedida();
-      $this->medida = new unidadmedida();
 
       /**
-       * Comprobamos si el usuario tiene acceso a nueva_compra,
+       * Comprobamos si el usuario tiene acceso a nueva_venta,
        * necesario para poder añadir líneas.
        */
-      if ($this->user->have_access_to('nueva_compra', FALSE))
+      if( $this->user->have_access_to('nueva_venta', FALSE) )
       {
-         $nuevopedp = $this->page->get('nueva_compra');
+         $nuevopedp = $this->page->get('nueva_venta');
          if($nuevopedp)
          {
             $this->nuevo_pedido_url = $nuevopedp->url();
          }
       }
-
-      /**
-       * Primero ejecutamos la función del cron para desbloquear los
-       * pedidos de albaranes eliminados y devolverlos al estado original.
-       */
-      $pedido->cron_job();
 
       if( isset($_POST['idpedido']) )
       {
@@ -123,40 +122,45 @@ class compras_pedido extends fs_controller
             $this->agente = $agente->get($this->pedido->codagente);
          }
 
-         /// cargamos el proveedor
-         $this->proveedor_s = $this->proveedor->get($this->pedido->codproveedor);
+         /// cargamos el cliente
+         $this->cliente_s = $this->cliente->get($this->pedido->codcliente);
 
          /// comprobamos el pedido
-         $this->pedido->full_test();
-
-         if( isset($_POST['aprobar']) AND isset($_POST['petid']) AND is_null($this->pedido->idalbaran) )
+         if( $this->pedido->full_test() )
          {
-            if( $this->duplicated_petition($_POST['petid']) )
+            if( isset($_REQUEST['status']) )
             {
-               $this->new_error_msg('Petición duplicada. Evita hacer doble clic sobre los botones.');
+               $this->pedido->status = intval($_REQUEST['status']);
+
+               if($this->pedido->status == 1 AND is_null($this->pedido->idalbaran))
+               {
+                  $this->generar_albaran();
+               }
+               elseif ($this->pedido->save())
+               {
+                  $this->new_message(ucfirst(FS_PEDIDO)." modificado correctamente.");
+               }
+               else
+               {
+                  $this->new_error_msg("¡Imposible modificar el ".FS_PEDIDO."!");
+               }
             }
-            else
-               $this->generar_albaran();
-         }
-         else if( isset($_GET['desbloquear']) )
-         {
-            $this->pedido->editable = TRUE;
-            $this->pedido->save();
-         }
-         else if( isset($_GET['nversion']) )
-         {
-            $this->nueva_version();
-         }
-         else if( isset($_GET['nversionok']) )
-         {
-            $this->new_message('Esta es la nueva versión del '.FS_PEDIDO.'.');
+            else if( isset($_GET['nversion']) )
+            {
+               $this->nueva_version();
+            }
+            else if( isset($_GET['nversionok']) )
+            {
+               $this->new_message('Esta es la nueva versión del '.FS_PEDIDO.'.');
+            }
          }
 
          $this->versiones = $this->pedido->get_versiones();
+         $this->get_historico();
       }
       else
       {
-         $this->new_error_msg("¡" . ucfirst(FS_PEDIDO) . " de proveedor no encontrado!", 'error', FALSE, FALSE);
+         $this->new_error_msg("¡" . ucfirst(FS_PEDIDO) . " de cliente no encontrado!", 'error', FALSE, FALSE);
       }
    }
 
@@ -167,7 +171,8 @@ class compras_pedido extends fs_controller
       $pedi->idalbaran = NULL;
       $pedi->fecha = $this->today();
       $pedi->hora = $this->hour();
-      $pedi->editable = TRUE;
+      $pedi->femail = NULL;
+      $pedi->status = 0;
       $pedi->numdocs = 0;
 
       $pedi->idoriginal = $this->pedido->idpedido;
@@ -220,10 +225,10 @@ class compras_pedido extends fs_controller
    private function modificar()
    {
       $this->pedido->observaciones = $_POST['observaciones'];
-      $this->pedido->numproveedor = $_POST['numproveedor'];
+      $this->pedido->numero2 = $_POST['numero2'];
 
       /// ¿El pedido es editable o ya ha sido aprobado?
-      if( is_null($this->pedido->idalbaran) )
+      if($this->pedido->editable)
       {
          $eje0 = $this->ejercicio->get_by_fecha($_POST['fecha'], FALSE);
          if(!$eje0)
@@ -234,30 +239,81 @@ class compras_pedido extends fs_controller
          {
             $this->pedido->fecha = $_POST['fecha'];
             $this->pedido->hora = $_POST['hora'];
+
+            $this->pedido->fechasalida = NULL;
+            if($_POST['fechasalida'] != '')
+            {
+               $this->pedido->fechasalida = $_POST['fechasalida'];
+            }
          }
 
-         /// ¿cambiamos el proveedor?
-         if($_POST['proveedor'] != $this->pedido->codproveedor)
+         /// ¿cambiamos el cliente?
+         if($_POST['cliente'] != $this->pedido->codcliente)
          {
-            $proveedor = $this->proveedor->get($_POST['proveedor']);
-            if($proveedor)
+            $cliente = $this->cliente->get($_POST['cliente']);
+            if($cliente)
             {
-               $this->pedido->codproveedor = $proveedor->codproveedor;
-               $this->pedido->nombre = $proveedor->razonsocial;
-               $this->pedido->cifnif = $proveedor->cifnif;
+               $this->pedido->codcliente = $cliente->codcliente;
+               $this->pedido->cifnif = $cliente->cifnif;
+               $this->pedido->nombrecliente = $cliente->razonsocial;
+               $this->pedido->apartado = NULL;
+               $this->pedido->ciudad = NULL;
+               $this->pedido->coddir = NULL;
+               $this->pedido->codpais = NULL;
+               $this->pedido->codpostal = NULL;
+               $this->pedido->direccion = NULL;
+               $this->pedido->provincia = NULL;
+
+               foreach($cliente->get_direcciones() as $d)
+               {
+                  if($d->domfacturacion)
+                  {
+                     $this->pedido->apartado = $d->apartado;
+                     $this->pedido->ciudad = $d->ciudad;
+                     $this->pedido->coddir = $d->id;
+                     $this->pedido->codpais = $d->codpais;
+                     $this->pedido->codpostal = $d->codpostal;
+                     $this->pedido->direccion = $d->direccion;
+                     $this->pedido->provincia = $d->provincia;
+                     break;
+                  }
+               }
             }
             else
             {
-               $this->pedido->codproveedor = NULL;
-               $this->pedido->nombre = $_POST['nombre'];
+               $this->pedido->codcliente = NULL;
+               $this->pedido->nombrecliente = $_POST['nombrecliente'];
                $this->pedido->cifnif = $_POST['cifnif'];
+               $this->pedido->coddir = NULL;
             }
          }
          else
          {
-            $this->pedido->nombre = $_POST['nombre'];
+            $this->pedido->nombrecliente = $_POST['nombrecliente'];
             $this->pedido->cifnif = $_POST['cifnif'];
-            $proveedor = $this->proveedor->get($this->pedido->codproveedor);
+            $this->pedido->codpais = $_POST['codpais'];
+            $this->pedido->provincia = $_POST['provincia'];
+            $this->pedido->ciudad = $_POST['ciudad'];
+            $this->pedido->codpostal = $_POST['codpostal'];
+            $this->pedido->direccion = $_POST['direccion'];
+            $this->pedido->apartado = $_POST['apartado'];
+
+            $this->pedido->envio_nombre = $_POST['envio_nombre'];
+            $this->pedido->envio_apellidos = $_POST['envio_apellidos'];
+            $this->pedido->envio_codtrans = NULL;
+            if($_POST['envio_codtrans'] != '')
+            {
+               $this->pedido->envio_codtrans = $_POST['envio_codtrans'];
+            }
+            $this->pedido->envio_codigo = $_POST['envio_codigo'];
+            $this->pedido->envio_codpais = $_POST['envio_codpais'];
+            $this->pedido->envio_provincia = $_POST['envio_provincia'];
+            $this->pedido->envio_ciudad = $_POST['envio_ciudad'];
+            $this->pedido->envio_codpostal = $_POST['envio_codpostal'];
+            $this->pedido->envio_direccion = $_POST['envio_direccion'];
+            $this->pedido->envio_apartado = $_POST['envio_apartado'];
+
+            $cliente = $this->cliente->get($this->pedido->codcliente);
          }
 
          $serie = $this->serie->get($this->pedido->codserie);
@@ -285,7 +341,7 @@ class compras_pedido extends fs_controller
             if($divisa)
             {
                $this->pedido->coddivisa = $divisa->coddivisa;
-               $this->pedido->tasaconv = $divisa->tasaconv_compra;
+               $this->pedido->tasaconv = $divisa->tasaconv;
             }
          }
          else if($_POST['tasaconv'] != '')
@@ -331,9 +387,9 @@ class compras_pedido extends fs_controller
             }
 
             $regimeniva = 'general';
-            if($proveedor)
+            if($cliente)
             {
-               $regimeniva = $proveedor->regimeniva;
+               $regimeniva = $cliente->regimeniva;
             }
 
             /// modificamos y/o añadimos las demás líneas
@@ -348,18 +404,19 @@ class compras_pedido extends fs_controller
                      if($value->idlinea == intval($_POST['idlinea_' . $num]))
                      {
                         $encontrada = TRUE;
-                        
                         $this->unidadmedida = new unidadmedida();
-                        $unidadM = $this->unidadmedida->get($_POST['codum_'. $num]);
-                        if($_POST['codum_'.$num] == "UNIDAD"){
-                           $lineas[$k]->cantidad_um = floatval($_POST['cantidad_' . $num]);
-                           $lineas[$k]->cantidad = floatval($_POST['cantidad_' . $num]);
-                           $lineas[$k]->codum = $unidadM->codum;
-                        }else{
-                           $lineas[$k]->cantidad_um = floatval($_POST['cantidad_'.$num]);
-                           $lineas[$k]->cantidad = floatval($_POST['cantidad_' .$num] * $unidadM->cantidad); //Cantidad por el factor de la unidad que no sale. 
-                           $lineas[$k]->codum = $unidadM->codum;
-                        }
+                     $unidadM = $this->unidadmedida->get($_POST['codum_'. $num]);
+                     if($_POST['codum_'.$num] == "UNIDAD"){
+
+                        $lineas[$k]->cantidad_um = floatval($_POST['cantidad_' . $num]);
+                        $lineas[$k]->cantidad =floatval($_POST['cantidad_' . $num]);
+                        $lineas[$k]->codum = $unidadM->codum;
+                     }else{
+                        $lineas[$k]->cantidad_um = floatval($_POST['cantidad_'.$num]);
+                        $lineas[$k]->cantidad = floatval($_POST['cantidad_' .$num] * $unidadM->cantidad); //Cantidad por el factor de la unidad que no sale.
+                        $lineas[$k]->codum = $unidadM->codum;
+                     }
+                        //$lineas[$k]->cantidad = floatval($_POST['cantidad_' . $num]);
                         $lineas[$k]->pvpunitario = floatval($_POST['pvp_' . $num]);
                         $lineas[$k]->dtopor = floatval($_POST['dto_' . $num]);
                         $lineas[$k]->pvpsindto = ($value->cantidad * $value->pvpunitario);
@@ -402,9 +459,9 @@ class compras_pedido extends fs_controller
                   }
 
                   /// añadimos la línea
-                  if( !$encontrada AND intval($_POST['idlinea_' . $num]) == -1 AND isset($_POST['referencia_' . $num]) )
+                  if(!$encontrada AND intval($_POST['idlinea_' . $num]) == -1 AND isset($_POST['referencia_' . $num]))
                   {
-                     $linea = new linea_pedido_proveedor();
+                     $linea = new linea_pedido_cliente();
                      $linea->idpedido = $this->pedido->idpedido;
                      $linea->descripcion = $_POST['desc_' . $num];
 
@@ -419,8 +476,8 @@ class compras_pedido extends fs_controller
                         $linea->iva = floatval($_POST['iva_' . $num]);
                         $linea->recargo = floatval($_POST['recargo_' . $num]);
                      }
-                     
-                     $linea->irpf = floatval($_POST['irpf_' . $num]);
+                      
+                     $linea->irpf = floatval($_POST['irpf_'.$num]);
                      $linea->cantidad = floatval($_POST['cantidad_' . $num]);
                      $linea->cantidad_um = floatval($_POST['cantidad_' . $num]);
                      $linea->pvpunitario = floatval($_POST['pvp_' . $num]);
@@ -432,12 +489,9 @@ class compras_pedido extends fs_controller
                      if($art0)
                      {
                         $linea->referencia = $art0->referencia;
-                        if(!empty($_POST['codcombinacion_' . $num]))
-                        {
-                           $linea->codcombinacion = $_POST['codcombinacion_' . $num];
-                        }
                      }
-                         if( $linea->save()){
+
+                     if($linea->save()){
                         $this->pedido->neto += $linea->pvptotal;
                         $this->pedido->totaliva += $linea->pvptotal * $linea->iva / 100;
                         $this->pedido->totalirpf += $linea->pvptotal * $linea->irpf / 100;
@@ -460,8 +514,8 @@ class compras_pedido extends fs_controller
             $this->pedido->totalirpf = round($this->pedido->totalirpf, FS_NF0);
             $this->pedido->totalrecargo = round($this->pedido->totalrecargo, FS_NF0);
             $this->pedido->total = $this->pedido->neto + $this->pedido->totaliva - $this->pedido->totalirpf + $this->pedido->totalrecargo;
-            
-            if( abs(floatval($_POST['atotal']) - $this->pedido->total) >= .02 )
+
+            if (abs(floatval($_POST['atotal']) - $this->pedido->total) >= .02)
             {
                $this->new_error_msg("El total difiere entre el controlador y la vista (" . $this->pedido->total .
                        " frente a " . $_POST['atotal'] . "). Debes informar del error.");
@@ -469,10 +523,10 @@ class compras_pedido extends fs_controller
          }
       }
 
-      if( $this->pedido->save() )
+      if( $this->pedido->save())
       {
          $this->new_message(ucfirst(FS_PEDIDO) . " modificado correctamente.");
-         $this->new_change(ucfirst(FS_PEDIDO) . ' Proveedor ' . $this->pedido->codigo, $this->pedido->url());
+         $this->new_change(ucfirst(FS_PEDIDO) . ' Cliente ' . $this->pedido->codigo, $this->pedido->url());
       }
       else
          $this->new_error_msg("¡Imposible modificar el " . FS_PEDIDO . "!");
@@ -480,24 +534,48 @@ class compras_pedido extends fs_controller
 
    private function generar_albaran()
    {
-      $albaran = new albaran_proveedor();
+      $albaran = new albaran_cliente();
+      $albaran->apartado = $this->pedido->apartado;
       $albaran->cifnif = $this->pedido->cifnif;
+      $albaran->ciudad = $this->pedido->ciudad;
       $albaran->codagente = $this->pedido->codagente;
       $albaran->codalmacen = $this->pedido->codalmacen;
-      $albaran->codproveedor = $this->pedido->codproveedor;
+      $albaran->codcliente = $this->pedido->codcliente;
+      $albaran->coddir = $this->pedido->coddir;
       $albaran->coddivisa = $this->pedido->coddivisa;
       $albaran->tasaconv = $this->pedido->tasaconv;
       $albaran->codpago = $this->pedido->codpago;
+      $albaran->codpais = $this->pedido->codpais;
+      $albaran->codpostal = $this->pedido->codpostal;
       $albaran->codserie = $this->pedido->codserie;
+      $albaran->direccion = $this->pedido->direccion;
       $albaran->neto = $this->pedido->neto;
-      $albaran->nombre = $this->pedido->nombre;
+      $albaran->nombrecliente = $this->pedido->nombrecliente;
       $albaran->observaciones = $this->pedido->observaciones;
+      $albaran->provincia = $this->pedido->provincia;
       $albaran->total = $this->pedido->total;
       $albaran->totaliva = $this->pedido->totaliva;
-      $albaran->numproveedor = $this->pedido->numproveedor;
+      $albaran->numero2 = $this->pedido->numero2;
       $albaran->irpf = $this->pedido->irpf;
+      $albaran->porcomision = $this->pedido->porcomision;
       $albaran->totalirpf = $this->pedido->totalirpf;
       $albaran->totalrecargo = $this->pedido->totalrecargo;
+
+      $albaran->envio_nombre = $this->pedido->envio_nombre;
+      $albaran->envio_apellidos = $this->pedido->envio_apellidos;
+      $albaran->envio_codtrans = $this->pedido->envio_codtrans;
+      $albaran->envio_codigo = $this->pedido->envio_codigo;
+      $albaran->envio_codpais = $this->pedido->envio_codpais;
+      $albaran->envio_provincia = $this->pedido->envio_provincia;
+      $albaran->envio_ciudad = $this->pedido->envio_ciudad;
+      $albaran->envio_codpostal = $this->pedido->envio_codpostal;
+      $albaran->envio_direccion = $this->pedido->envio_direccion;
+      $albaran->envio_apartado = $this->pedido->envio_apartado;
+
+      if( isset($_POST['facturar']) )
+      {
+         $albaran->fecha = $_POST['facturar'];
+      }
 
       if( is_null($albaran->codagente) )
       {
@@ -505,18 +583,19 @@ class compras_pedido extends fs_controller
       }
 
       /**
-       * Obtenemos el ejercicio para la fecha seleccionada.
+       * Obtenemos el ejercicio para la fecha de hoy (puede que
+       * no sea el mismo ejercicio que el del pedido, por ejemplo
+       * si hemos cambiado de año)
        */
-      $eje0 = $this->ejercicio->get_by_fecha($_POST['aprobar'], FALSE);
+      $eje0 = $this->ejercicio->get_by_fecha($albaran->fecha, FALSE);
       if($eje0)
       {
-         $albaran->fecha = $_POST['aprobar'];
          $albaran->codejercicio = $eje0->codejercicio;
       }
 
       if(!$eje0)
       {
-         $this->new_error_msg("Ejercicio no encontrado o está cerrado.");
+         $this->new_error_msg("Ejercicio no encontrado.");
       }
       else if( !$eje0->abierto() )
       {
@@ -524,13 +603,12 @@ class compras_pedido extends fs_controller
       }
       else if( $albaran->save() )
       {
-         $art0 = new articulo();
          $continuar = TRUE;
-         $trazabilidad = FALSE;
+         $art0 = new articulo();
 
          foreach($this->pedido->get_lineas() as $l)
          {
-            $n = new linea_albaran_proveedor();
+            $n = new linea_albaran_cliente();
             $n->idlineapedido = $l->idlinea;
             $n->idpedido = $l->idpedido;
             $n->idalbaran = $albaran->idalbaran;
@@ -545,42 +623,42 @@ class compras_pedido extends fs_controller
             $n->pvpunitario = $l->pvpunitario;
             $n->recargo = $l->recargo;
             $n->referencia = $l->referencia;
-            $n->codcombinacion = $l->codcombinacion;
+            $n->orden = $l->orden;
+            $n->mostrar_cantidad = $l->mostrar_cantidad;
+            $n->mostrar_precio = $l->mostrar_precio;
 
             if( $n->save() )
             {
-               /// añadimos al stock
-               if( $n->referencia AND isset($_POST['stock']) )
+               /// descontamos del stock
+               if( !is_null($n->referencia) )
                {
                   $articulo = $art0->get($n->referencia);
                   if($articulo)
                   {
-                     $articulo->sum_stock($albaran->codalmacen, $l->cantidad, isset($_POST['costemedio']), $l->codcombinacion);
-                     if($articulo->trazabilidad)
-                     {
-                        $trazabilidad = TRUE;
+                     $articulo->sum_stock($albaran->codalmacen, 0 - $l->cantidad);
                   }
                }
             }
-            }
             else
             {
-               $this->new_error_msg("¡Imposible guardar la línea el artículo " . $n->referencia . "! ");
                $continuar = FALSE;
+               $this->new_error_msg("¡Imposible guardar la línea el artículo " . $n->referencia . "! ");
+               break;
             }
          }
 
          if($continuar)
          {
             $this->pedido->idalbaran = $albaran->idalbaran;
-            $this->pedido->editable = FALSE;
+            $this->pedido->fechasalida = $albaran->fecha;
 
             if( $this->pedido->save() )
             {
                $this->new_message("<a href='" . $albaran->url() . "'>" . ucfirst(FS_ALBARAN) . '</a> generado correctamente.');
-               if($trazabilidad)
+
+               if( isset($_POST['facturar']) )
                {
-                  header('Location: index.php?page=compras_trazabilidad&doc=albaran&id='.$albaran->idalbaran);
+                  header('Location: '.$albaran->url().'&facturar='.$_POST['facturar'].'&petid='.$this->random_string());
                }
             }
             else
@@ -606,5 +684,105 @@ class compras_pedido extends fs_controller
       }
       else
          $this->new_error_msg("¡Imposible guardar el " . FS_ALBARAN . "!");
+   }
+
+   public function get_lineas_stock()
+   {
+      $lineas = array();
+
+      $sql = "SELECT l.referencia,l.descripcion,l.cantidad,s.cantidad as stock,s.ubicacion FROM lineaspedidoscli l"
+              . " LEFT JOIN stocks s ON l.referencia = s.referencia"
+              . " AND s.codalmacen = ".$this->pedido->var2str($this->pedido->codalmacen)
+              . " WHERE l.idpedido = ".$this->pedido->var2str($this->pedido->idpedido)
+              . " ORDER BY referencia ASC;";
+      $data = $this->db->select($sql);
+      if($data)
+      {
+         $art0 = new articulo();
+
+         foreach($data as $d)
+         {
+            $articulo = $art0->get($d['referencia']);
+            if($articulo)
+            {
+               $lineas[] = array(
+                   'articulo' => $articulo,
+                   'descripcion' => $d['descripcion'],
+                   'cantidad' => floatval($d['cantidad']),
+                   'stock' => floatval($d['stock']),
+                   'ubicacion' => $d['ubicacion']
+               );
+            }
+         }
+      }
+
+      return $lineas;
+   }
+
+   private function get_historico()
+   {
+      $this->historico = array();
+      $orden = 0;
+
+      /// presupuestos
+      $sql = "SELECT * FROM presupuestoscli WHERE idpedido = ".$this->pedido->var2str($this->pedido->idpedido)
+              ." ORDER BY idpresupuesto ASC;";
+
+      $data = $this->db->select($sql);
+      if($data)
+      {
+         foreach($data as $d)
+         {
+            $presupuesto = new presupuesto_cliente($d);
+            $this->historico[] = array(
+                'orden' => $orden,
+                'documento' => 'ventas_presupuesto',
+                'modelo' => $presupuesto
+            );
+            $orden++;
+         }
+      }
+
+      if($this->pedido->idalbaran)
+      {
+         $sql1 = "SELECT * FROM albaranescli WHERE idalbaran = ".$this->pedido->var2str($this->pedido->idalbaran)
+                 ." ORDER BY idalbaran ASC;";
+
+         $data1 = $this->db->select($sql1);
+         if($data1)
+         {
+            foreach($data1 as $d1)
+            {
+               $albaran = new albaran_cliente($d1);
+               $this->historico[] = array(
+                   'orden' => $orden,
+                   'documento' => 'ventas_albaran',
+                   'modelo' => $albaran
+               );
+               $orden++;
+
+               if($albaran->idfactura)
+               {
+                  $sql2 = "SELECT * FROM facturascli WHERE idfactura = ".$albaran->var2str($albaran->idfactura)
+                          ." ORDER BY idfactura ASC;";
+
+                  $data2 = $this->db->select($sql2);
+                  if($data2)
+                  {
+                     foreach($data2 as $d2)
+                     {
+                        $factura = new factura_cliente($d2);
+                        $this->historico[] = array(
+                            'orden' => $orden,
+                            'documento' => 'ventas_factura',
+                            'modelo' => $factura
+                        );
+                        $orden++;
+                     }
+                  }
+               }
+            }
+         }
+      }
    }
 }
