@@ -519,7 +519,6 @@ class nueva_compra extends fs_controller
          $pedido->codpago = $forma_pago->codpago;
          $pedido->coddivisa = $divisa->coddivisa;
          $pedido->tasaconv = $divisa->tasaconv_compra;
-
          if($_POST['tasaconv'] != '')
          {
             $pedido->tasaconv = floatval($_POST['tasaconv']);
@@ -550,10 +549,9 @@ class nueva_compra extends fs_controller
                         $linea->iva = floatval($_POST['iva_'.$i]);
                         $linea->recargo = floatval($_POST['recargo_'.$i]);
                      }
-                     else
-                     {
-                        $linea->iva = floatval($_POST['iva_'.$i]);
-                        $linea->recargo = floatval($_POST['recargo_'.$i]);
+                     else{
+                      $linea->iva = floatval($_POST['iva_'.$i]);
+                      $linea->recargo = floatval($_POST['recargo_'.$i]);
                      }
                   }
 
@@ -582,13 +580,15 @@ class nueva_compra extends fs_controller
                   $linea->codum = $umdata[0];
 
                   $articulo = $art0->get($_POST['referencia_'.$i]);
-                  if($articulo)
-                  {
+                  if($articulo){
+                      
                      $linea->referencia = $articulo->referencia;
-                     if($_POST['codcombinacion_'.$i])
+                     /*Comente esta combinacion porque no se para que se esta utilizando.*/
+                    
+                     /*if(!empty($_POST['codcombinacion_'.$i]) or $_POST['codcombinacion_'.$i] != NULL)
                      {
                         $linea->codcombinacion = $_POST['codcombinacion_'.$i];
-                     }
+                     }*/
                   }
 
                   if( $linea->save() )

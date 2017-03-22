@@ -756,10 +756,10 @@ class nueva_venta extends fs_controller
                         $trazabilidad = TRUE;
                      }
 
-                     if($_POST['codcombinacion_'.$i])
+                   /*  if($_POST['codcombinacion_'.$i])
                      {
                         $linea->codcombinacion = $_POST['codcombinacion_'.$i];
-                     }
+                     }*/
                   }
 
                   if( $linea->save() )
@@ -1509,7 +1509,7 @@ class nueva_venta extends fs_controller
                   if($articulo)
                   {
                      $linea->referencia = $articulo->referencia;
-                     if($_POST['codcombinacion_'.$i])
+                     if( !empty($_POST['codcombinacion_'.$i]))
                      {
                         $linea->codcombinacion = $_POST['codcombinacion_'.$i];
                      }
@@ -1573,5 +1573,12 @@ class nueva_venta extends fs_controller
          else
             $this->new_error_msg("¡Imposible guardar el ".FS_PEDIDO."!");
       }
+   }
+     public function agregar_um($articulo) {
+       $umBase = $this->articulo_um->getBase($articulo->referencia);
+       $articulo->umBase = ($umBase)?$umBase:1;
+       $umCompra = $this->articulo_um->getByTipo($articulo->referencia,'se_vende');
+       $articulo->listaUM = ($umCompra)?$umCompra:array(array("codum"=>'UNIDAD','base'=>true,'factor'=>1,'se_vende'=>true));
+       return $articulo;
    }
 }
