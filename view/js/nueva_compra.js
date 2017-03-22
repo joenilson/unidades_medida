@@ -94,8 +94,7 @@ function usar_divisa()
    document.f_buscar_articulos.coddivisa.value = $("#coddivisa").val();
 }
 
-function recalcular()
-{
+function recalcular() {
    var l_uds = 0;
    var l_pvp = 0;
    var l_dto = 0;
@@ -138,31 +137,34 @@ function recalcular()
              
             $("#recargo_"+i).val( $("#recargo_"+i).val().replace(",",".") );
          }
-         /**
-          * Para validar el total de la vista que se trae desde el controlador
-          * cuando se hace una actualización de las cantidades
-          * el campo atotal no coincide con la suma de las cantidades
-          */
-         if($('#codum_'+i).val()!= 'UNIDAD'){
-            l_uds = parseFloat($("#cantidadX_"+i).val());
+         
+         /*Validando la vista para que el calculo se realice de la mejor manera .
+          * Valido tanto para la creacion de un nuevo pedido y la edicion de este*/
+         var minut = nueva_compra_url.substr(28,39);
+         if(minut !='tipo=pedido'){
+         if($("#codum_"+i).val()=='UNIDAD'){
+         l_uds = parseFloat($("#cantidad_"+i).val());
          }else{
-            l_uds = parseFloat($("#cantidad_"+i).val());
+         l_uds = parseFloat($("#cantidadX_"+i).val());}
+         }else{
+         l_uds = parseFloat($("#cantidad_"+i).val());
+         }
+         /*Esta validacion la empleo para las lineas libres, para que me auto-calcule.*/
+         if(isNaN(l_uds) ){
+          l_uds = parseFloat($("#cantidad_"+i).val());
          }
          l_pvp = parseFloat( $("#pvp_"+i).val() );
          l_dto = parseFloat( $("#dto_"+i).val() );
          l_neto = l_uds*l_pvp*(100-l_dto)/100;
          l_iva = parseFloat( $("#iva_"+i).val() );
          l_irpf = parseFloat( $("#irpf_"+i).val() );
-         l_recargo = parseFloat( $("#recargo_"+i).val() );
-        
-            
-        if(numlineas == 1)  {
-            $("#total_"+i).val( fs_round(l_neto, fs_nf0) + fs_round(l_neto*(l_iva-l_irpf+l_recargo)/100, fs_nf0) );
-         }
-         else
-         {
-            $("#total_"+i).val( number_format(l_neto + (l_neto*(l_iva-l_irpf+l_recargo)/100), fs_nf0, '.', '') );
-         }
+         l_recargo = parseFloat( $("#recargo_"+i).val());
+      
+         $("#neto_"+i).val(l_neto );
+         if(numlineas == 1) {
+            $("#total_"+i).val( fs_round(l_neto, fs_nf0) + fs_round(l_neto*(l_iva-l_irpf+l_recargo)/100, fs_nf0));}
+         else{
+           $("#total_"+i).val( number_format(l_neto + (l_neto*(l_iva-l_irpf+l_recargo)/100), fs_nf0, '.', '') );}
 
          neto += l_neto;
          total_iva += l_neto * l_iva/100;
@@ -400,8 +402,13 @@ function aux_all_impuestos(num,codimpuesto)
    return html;
 }
 
-function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,um_base,factor_base,listaUM)
-{
+function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,codcombinacion,um_base,factor_base,listaUM)
+{  
+   if(typeof codcombinacion == 'undefined')
+   {
+      codcombinacion = '';
+   }
+
    desc = Base64.decode(desc);
    $("#lineas_albaran").append("<tr id=\"linea_"+numlineas+"\">\n\
       <td><input type=\"hidden\" name=\"idlinea_"+numlineas+"\" value=\"-1\"/>\n\
@@ -421,11 +428,11 @@ function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,um_base,factor_base,
          "\" onchange=\"ajustar_neto("+numlineas+")\" onclick=\"this.select()\" autocomplete=\"off\"/></td>\n\
       "+aux_all_impuestos(numlineas,codimpuesto)+"\n\
       <td class=\"warning\" title=\"Cálculo aproximado del total de la linea\">\n\
-         <input type=\"text\" class=\"form-control text-right\" id=\"total_"+numlineas+"\" name=\"total_"+numlineas+
-         "\" onchange=\"ajustar_total("+numlineas+")\" onclick=\"this.select()\" autocomplete=\"off\"/></td></tr>");
-         numlineas += 1;
-        $("#numlineas").val(numlineas);
-   recalcular();
+      <input type=\"text\" class=\"form-control text-right\" id=\"total_"+numlineas+"\" name=\"total_"+numlineas+
+      "\" onchange=\"ajustar_total("+numlineas+")\" onclick=\"this.select()\" autocomplete=\"off\"/></td></tr>");
+       numlineas += 1;
+       $("#numlineas").val(numlineas);
+       recalcular();
 
    $("#modal_articulos").modal('hide');
 
@@ -447,35 +454,45 @@ function add_articulo_atributos(ref,desc,pvp,dto,codimpuesto)
       }
    });
 }
-
-function add_linea_libre()
-{
+function aux_items(num,um_base,factor_base,listaUM){
     
-   $("#lineas_albaran").append("<tr id=\"linea_"+numlineas+"\">\n\
-      <td><input type=\"hidden\" name=\"idlinea_"+numlineas+"\" value=\"-1\"/>\n\
-         <input type=\"hidden\" name=\"referencia_"+numlineas+"\"/>\n\
-         <div class=\"form-control\"></div></td>\n\
-      <td><textarea class=\"form-control\" id=\"desc_"+numlineas+"\" name=\"desc_"+numlineas+"\" rows=\"1\"></textarea></td>\n\
-      <td><input type=\""+input_number+"\" step=\"any\" id=\"cantidadX_"+numlineas+"\" class=\"form-control text-right\" name=\"cantidadX_"+numlineas+
-         "\" onchange=\"recalcular()\" onkeyup=\"recalcular()\" autocomplete=\"off\" value=\"1\"/></td>\n\
-      <td><button class=\"btn btn-sm btn-danger\" type=\"button\" onclick=\"$('#linea_"+numlineas+"').remove();recalcular();\"> \n\
-         <span class=\"glyphicon glyphicon-trash\"></span></button></td>\n\
-      <td><input type=\"text\" class=\"form-control text-right\" id=\"pvp_"+numlineas+"\" name=\"pvp_"+numlineas+"\" value=\"0\"\n\
-          onkeyup=\"recalcular()\" onclick=\"this.select()\" autocomplete=\"off\"/></td>\n\
-      <td><input type=\"text\" id=\"dto_"+numlineas+"\" name=\"dto_"+numlineas+"\" value=\"0\" class=\"form-control text-right\"\n\
-          onkeyup=\"recalcular()\" onclick=\"this.select()\" autocomplete=\"off\"/></td>\n\
-      <td><input type=\"text\" class=\"form-control text-right\" id=\"neto_"+numlineas+"\" name=\"neto_"+numlineas+
-         "\" onchange=\"ajustar_neto("+numlineas+")\" onclick=\"this.select()\" autocomplete=\"off\"/></td>\n\
+   console.log(listaUM);
+   var html = "<td><select id=\"um_"+num+"\" class=\"form-control\" name=\"um_"+num+"\" onchange=\"convertir_um('"+num+"')\">";
+   html += "<option value=\""+listaUM+"|1"+"\" selected=\"\">"+listaUM+"</option>";
+   html += "</select>\n";
+   return html;  
+}
+
+function add_linea_libre(){  
+
+  $("#lineas_albaran").append("<tr id=\"linea_"+numlineas+"\">\n\
+  <td><input type=\"hidden\" name=\"idlinea_"+numlineas+"\" value=\"-1\"/>\n\
+  <input type=\"hidden\" name=\"referencia_"+numlineas+"\"/>\n\
+  <input type=\"hidden\" name=\"codcombinacion_"+numlineas+"\"/>\n\
+  <div class=\"form-control\"></div></td>\n\
+  <td><textarea class=\"form-control\" id=\"desc_"+numlineas+"\" name=\"desc_"+numlineas+"\" rows=\"1\"></textarea></td>\n\
+   <td><input type=\""+input_number+"\" step=\"any\" id=\"cantidad_"+numlineas+"\" class=\"form-control text-right\" name=\"cantidad_"+numlineas+
+    "\" onchange=\"recalcular()\" onkeyup=\"recalcular()\" autocomplete=\"off\" value=\"1\"/></td>\n\
+     "+aux_items(numlineas,1,1,"UNIDAD")+"\n\
+    <td><button class=\"btn btn-sm btn-danger\" type=\"button\" onclick=\"$('#linea_"+numlineas+"').remove();recalcular();\">\n\
+    <span class=\"glyphicon glyphicon-trash\"></span></button></td>\n\
+     <td><input type=\"text\" class=\"form-control text-right\" id=\"pvp_"+numlineas+"\" name=\"pvp_"+numlineas+"\" value=\"0\"\n\
+    onkeyup=\"recalcular()\" onclick=\"this.select()\" autocomplete=\"off\"/></td>\n\
+    <td><input type=\"text\" id=\"dto_"+numlineas+"\" name=\"dto_"+numlineas+"\" value=\"0\" class=\"form-control text-right\"\n\
+    onkeyup=\"recalcular()\" onclick=\"this.select()\" autocomplete=\"off\"/></td>\n\
+     <td><input type=\"text\" class=\"form-control text-right\" id=\"neto_"+numlineas+"\" name=\"neto_"+numlineas+
+     "\" onchange=\"ajustar_neto("+numlineas+")\" onclick=\"this.select()\" autocomplete=\"off\"/></td>\n\
       "+aux_all_impuestos(numlineas,default_impuesto)+"\n\
       <td class=\"warning\" title=\"Cálculo aproximado del total de la linea\">\n\
-         <input type=\"text\" class=\"form-control text-right\" id=\"total_"+numlineas+"\" name=\"total_"+numlineas+
-         "\" onchange=\"ajustar_total("+numlineas+")\" onclick=\"this.select()\" autocomplete=\"off\"/></td></tr>");
-         
-   numlineas += 1;
-   recalcular();
+      <input type=\"text\" class=\"form-control text-right\" id=\"total_"+numlineas+"\" name=\"total_"+numlineas+
+      "\" onchange=\"ajustar_total("+numlineas+")\" onclick=\"this.select()\" autocomplete=\"off\"/></td></tr>");
+      console.log();
+      numlineas += 1;
+     $("#numlineas").val(numlineas);
+     recalcular();
+     $("#desc_"+(numlineas-1)).select();
+    return false;
 
-   $("#desc_"+(numlineas-1)).select();
-   return false;
 }
 
 function get_precios(ref)
@@ -734,14 +751,19 @@ function aux_all_um(num,um_base,factor_base,listaUM)
        nueva_lista_um.factor = line[1];
        buscador[line[0]] = nueva_lista_um;
    }
+    
    var html = "<td><select id=\"um_"+num+"\" class=\"form-control\" name=\"um_"+num+"\" onchange=\"convertir_um('"+num+"')\">";
-   for(var i=0; i<all_um.length; i++)
+  
+    for(var i=0; i<all_um.length; i++)
    {
       if(um_base === all_um[i].codum){
-        html += "<option value=\""+all_um[i].codum+"|1"+"\" selected=\"\">"+all_um[i].nombre+"</option>";
-      } else {
+        html += "<option value=\""+all_um[i].codum+"|1"+"\" selected=\"\">"+all_um[i].codum+"</option>";
+        
+   
+      }else{
+          
         if(buscador[all_um[i].codum]){
-            html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].nombre+"</option>";
+           html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].codum+"</option>";
         }
       }
    }
@@ -765,8 +787,8 @@ function aux_all_um(num,um_base,factor_base,listaUM)
  * @param {type} num
  * @returns cantidad,precio
  */
-function convertir_um(num)
-{
+function convertir_um(num) {
+
    var um_destino = $("#um_"+num).val();
    var factor_actual = $("#factor_"+num).val();
    var precio = $("#pvp_"+num).val();
@@ -774,24 +796,27 @@ function convertir_um(num)
    var valores_um_destino = um_destino.split('|');
    var um_destino = valores_um_destino[0];
    var factor = valores_um_destino[1];
-   if(factor !== factor_base){
+   var factor_um_change = $('#factor_'+num).val();
+   
+    if(factor != factor_base){
        //tengo 1 caja de 100 y la necesito sacar el precio para 1 display de 24 unidades
        //Dividimos el precio actual entre el factor_actual para obtener nuevamente el precio unitario
        var basePrecio = precio/factor_actual;
        //Y finalmente saco el precio por display de 24 unidades
        //multiplicando el precio base * el factor del display (24)
        var nuevoPrecio = basePrecio*factor;
-       $("#pvp_"+num).html(nuevoPrecio);
-   }else{
+       $("#pvp_"+num).val(nuevoPrecio);
+      
+      }else{
        //La cantidad dice 1 display y la vamos a cambiar a 1 unidad
        // dividimos el precio actual entre el factor actual
        nuevoPrecio = precio/factor_actual;
-       $("#pvp_"+num).html(nuevoPrecio);
+       $("#pvp_"+num).val(nuevoPrecio);
    }
    //Actualizamos el factor actual de la unidad de medida nueva
    $("#factor_"+num).val(factor);
    //Cuando actualizamos todos los valores recalculamos
-   recalcular();
+    recalcular();
 }
 
 $(document).ready(function() {

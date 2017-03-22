@@ -176,8 +176,23 @@ function recalcular()
          {
             $("#recargo_"+i).val( $("#recargo_"+i).val().replace(",",".") );
          }
-
-         l_uds = parseFloat( $("#cantidad_"+i).val() );
+            /*Validando la vista para que el calculo se realice de la mejor manera .
+          * Valido tanto para la creacion de un nuevo pedido y la edicion de este*/
+         var minut = nueva_venta_url.substr(28,39);
+         
+         if(minut !='tipo=pedido'){
+         if($("#codum_"+i).val()=='UNIDAD'){
+         l_uds = parseFloat($("#cantidad_"+i).val());
+         }else{
+         l_uds = parseFloat($("#cantidadX_"+i).val());}
+         }else{
+         l_uds = parseFloat($("#cantidad_"+i).val());
+         }
+         /*Esta validacion la empleo para las lineas libres, para que me auto-calcule.*/
+         if(isNaN(l_uds) ){
+          l_uds = parseFloat($("#cantidad_"+i).val());
+         }
+         //l_uds = parseFloat( $("#cantidad_"+i).val() );
          l_pvp = parseFloat( $("#pvp_"+i).val() );
          l_dto = parseFloat( $("#dto_"+i).val() );
          l_neto = l_uds*l_pvp*(100-l_dto)/100;
@@ -390,6 +405,37 @@ function ajustar_iva(num)
    recalcular();
 }
 
+function convertir_um(num){
+   
+   var um_destino = $("#um_"+num).val();
+   var factor_actual = $("#factor_"+num).val();
+   var precio = $("#pvp_"+num).val();
+   var factor_base = $("#factor_base_"+num).val();
+   var valores_um_destino = um_destino.split('|');
+   var um_destino = valores_um_destino[0];
+   var factor = valores_um_destino[1];
+    console.log(factor_base);
+   if(factor !== factor_base){
+       //tengo 1 caja de 100 y la necesito sacar el precio para 1 display de 24 unidades
+       //Dividimos el precio actual entre el factor_actual para obtener nuevamente el precio unitario
+       var basePrecio = precio/factor_actual;
+       //Y finalmente saco el precio por display de 24 unidades
+       //multiplicando el precio base * el factor del display (24)
+       var nuevoPrecio = basePrecio*factor;
+       $("#pvp_"+num).val(nuevoPrecio);
+   }else{
+       //La cantidad dice 1 display y la vamos a cambiar a 1 unidad
+       // dividimos el precio actual entre el factor actual
+       nuevoPrecio = precio/factor_actual;
+       $("#pvp_"+num).val(nuevoPrecio);
+   }
+   //Actualizamos el factor actual de la unidad de medida nueva
+   $("#factor_"+num).val(factor);
+   //Cuando actualizamos todos los valores recalculamos
+   recalcular();
+}
+
+
 function aux_all_impuestos(num,codimpuesto)
 {
    var iva = 0;
@@ -432,7 +478,7 @@ function aux_all_impuestos(num,codimpuesto)
 }
 
 function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,codcombinacion,um_base,factor_base,listaUM)
-{
+{  
    if(typeof codcombinacion == 'undefined')
    {
       codcombinacion = '';
@@ -442,7 +488,6 @@ function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,codcombinacion,um_ba
    $("#lineas_albaran").append("<tr id=\"linea_"+numlineas+"\">\n\
       <td><input type=\"hidden\" name=\"idlinea_"+numlineas+"\" value=\"-1\"/>\n\
          <input type=\"hidden\" name=\"referencia_"+numlineas+"\" value=\""+ref+"\"/>\n\
-         <input type=\"hidden\" name=\"codcombinacion_"+numlineas+"\" value=\""+codcombinacion+"\"/>\n\
          <div class=\"form-control\"><small><a target=\"_blank\" href=\"index.php?page=ventas_articulo&ref="+ref+"\">"+ref+"</a></small></div></td>\n\
       <td><textarea class=\"form-control\" id=\"desc_"+numlineas+"\" name=\"desc_"+numlineas+"\" rows=\"1\">"+desc+"</textarea></td>\n\
       <td><input type=\""+input_number+"\" step=\"any\" id=\"cantidad_"+numlineas+"\" class=\"form-control text-right\" name=\"cantidad_"+numlineas+
@@ -475,23 +520,29 @@ function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,codcombinacion,um_ba
  */
 function aux_all_um(num,um_base,factor_base,listaUM)
 {
+    console.log(listaUM);
    var lista_um = listaUM.split(',');
    var buscador = [];
    for(var i=0; i<lista_um.length; i++){
        var line = lista_um[i].split('|');
        var nueva_lista_um = {};
-       nueva_lista_um.codum = line[0];
+       nueva_lista_um.id = line[0];
        nueva_lista_um.factor = line[1];
        buscador[line[0]] = nueva_lista_um;
    }
+    
    var html = "<td><select id=\"um_"+num+"\" class=\"form-control\" name=\"um_"+num+"\" onchange=\"convertir_um('"+num+"')\">";
-   for(var i=0; i<all_um.length; i++)
+  
+    for(var i=0; i<all_um.length; i++)
    {
       if(um_base === all_um[i].codum){
         html += "<option value=\""+all_um[i].codum+"|1"+"\" selected=\"\">"+all_um[i].codum+"</option>";
-      } else {
+        
+   
+      }else{
+          
         if(buscador[all_um[i].codum]){
-            html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].codum+"</option>";
+           html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].codum+"</option>";
         }
       }
    }
@@ -581,7 +632,7 @@ function new_articulo()
             $("#li_mis_articulos").addClass('active');
             $("#search_results").show();
             $("#nuevo_articulo").hide();
-
+            console.log(datos[0].listaUM + 'Save');
             add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].pvp, 0, datos[0].codimpuesto, 1, datos[0].umBase, datos[0].listaUM);
          }
       });
@@ -658,13 +709,13 @@ function buscar_articulos()
                   if(val.stockalm > 0 || val.controlstock)
                   {
                      var funcion = "add_articulo('"+val.referencia+"','"+descripcion+"','"+val.pvp+"','"
-                             +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
-
+                             +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
                      if(val.tipo)
                      {
                         funcion = "add_articulo_"+val.tipo+"('"+val.referencia+"','"+descripcion+"','"
                                 +val.pvp+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
-                     }
+                               console.log(val.lista_um);
+                        }
                   }
                   else
                   {
