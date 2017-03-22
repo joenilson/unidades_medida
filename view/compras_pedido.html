@@ -17,6 +17,7 @@
    precio_compra = '{#FS_PRECIO_COMPRA#}';
    all_umedida = {function="json_encode($fsc->articulo_um->all())"};
 
+
    {if="$fsc->empresa->recequivalencia"}
    tiene_recargo = true;
    {/if}
@@ -27,25 +28,27 @@
       document.f_pedido.ac_proveedor.value = '';
       document.f_pedido.ac_proveedor.focus();
    }
-   
    /** 
    * Este metodo realiza el calculo de la unidad de medida para hacer la validacion con la vista.
    */
    function Convert_um_edit(num){
-      var factor_product = 0;
-      var cant = parseFloat($('#cantidad_'+num).val());
-      
-      all_umedida.forEach(function(current,index,arr){
-         if(current.codum == $('#codum_'+num).val()){
-            factor_product = current.factor;
-         }
-      });
-      factor_product = (factor_product * cant);
-      $('#cantidadX_'+num).val(factor_product);
-      recalcular();
+   
+   var factor_product = 0;
+   var cant = parseFloat($('#cantidad_'+num).val());
+   var precio = $("#pvp_"+num).val();
+   all_umedida.forEach(function(current,index,arr){
+       
+   if(current.codum == $('#codum_'+num).val()){
+   factor_product = current.factor;}
+   
+    });
+    
+   factor_product = (factor_product * cant);
+   $('#cantidadX_'+num).val(factor_product);
+    recalcular();
    }
-      
-  $(document).ready(function() {
+
+   $(document).ready(function() {
       $('#numlineas').val(numlineas);
       usar_serie();
       usar_almacen();
@@ -69,7 +72,7 @@
 </script>
 {/if}
 <script type="text/javascript">
-   $(document).ready(function () {  
+   $(document).ready(function () {
       $('#b_imprimir').click(function (event) {
          event.preventDefault();
          $('#modal_imprimir_pedido').modal('show');
@@ -329,21 +332,21 @@
             <div class="table-responsive">
                {if="$fsc->pedido->editable"}
                <table class="table table-condensed">
-                  <thead>
+                   <thead>
                      <tr>
-                        <th class="text-left" width="90">Referencia</th>
-                        <th class="text-left">Descripción</th>
+                        <th  width="100">Referencia</th>
+                        <th class="text-left" >Descripción</th>
                         <th class="text-right" width="90">Cantidad</th>
-                         <th class="text-right" width="30">Cantidad_X_Medida</th>
+                        <th class="text-right" width="30">Cantidad_X_Medida</th>
                         <th width="119">UM</th>
                         <th width="112"></th>
-                        <th class="text-center" width="110">Precio</th>
+                        <th class="text-right" width="100">Precio</th>
                         <th class="text-right" width="90">Dto. %</th>
                         <th class="text-right" width="130">Neto</th>
                         <th class="text-right" width="115">{#FS_IVA#}</th>
                         <th class="text-right recargo" width="115">RE %</th>
-                        <th class="text-center irpf" width="120">{#FS_IRPF#} %</th>
-                        <th class="text-center" width="160">Total</th>
+                        <th class="text-right irpf" width="115">{#FS_IRPF#} %</th>
+                        <th class="text-center" width="140">Total</th>
                      </tr>
                   </thead>
                   <tbody id="lineas_albaran">
@@ -352,34 +355,35 @@
                         <td>
                            <input type="hidden" name="idlinea_{$counter}" value="{$value->idlinea}"/>
                            <input type="hidden" name="referencia_{$counter}" value="{$value->referencia}"/>
+                           {if="!$fsc->pedido->editable"}
                            <input type="hidden" name="codcombinacion_{$counter}" value="{$value->codcombinacion}"/>
+                           {/if}
                            <div class="form-control">
                               <small><a target="_blank" href="{$value->articulo_url()}">{$value->referencia}</a></small>
                            </div>
                         </td>
                         <td><textarea class="form-control" name="desc_{$counter}" rows="1">{$value->descripcion}</textarea></td>
-                        <td>
-                            {if="$value->codum =='UNIDAD' "}
+                            <td>
+                             {if="$value->codum =='UNIDAD'"}
                             <input type="number" step="any" id="cantidad_{$counter}" class="form-control text-right" name="cantidad_{$counter}"
                                    value="{$value->cantidad}" onkeyup="recalcular()" onchange="recalcular();Convert_um_edit('{$counter}')" />
                             {else}
-                             <input type="number" step="any" id="cantidad_{$counter}" class="form-control text-right" name="cantidad_{$counter}"
+                            <input type="number" step="any" id="cantidad_{$counter}" class="form-control text-right" name="cantidad_{$counter}"
                                     value="{$value->cantidad_um}"  onkeyup="recalcular()"  onchange="recalcular();Convert_um_edit('{$counter}')" autocomplete="off" value="1"/>
-                            {/if}
-                        </td>
+                              {/if}
+                       </td>
                         <td>
                             <input type="text" id="cantidadX_{$counter}" class="form-control text-right" name="cantidadX_{$counter}"
                                    value="{$value->cantidad}"  disabled="disable" onchange="recalcular();Convert_um_edit('{$counter}')"/>
                         </td>
-                        <td>
+                          <td>
                             <select class="form-control" id="codum_{$counter}" name="codum_{$counter}"  onchange=" Convert_um_edit('{$counter}')">
                             {if="$value->codum == ''"}
                             <option value="UNIDAD" selected="">UNIDAD</option>
                             {else}
                             <option value="{$value->codum}" selected="">{$value->codum}</option>
-                            {/if}
-                            {loop="$fsc->articulo_um->get($value->referencia)"}
-                                if="$value1->referencia==$value->referencia or $value1->codum==$value->codum"}
+                              {loop="$fsc->articulo_um->get($value->referencia)"}
+                                if="$value1->referencia==$value->referencia }
                                 <option value="{$value->codum}" >{$value->codum}</option>
                                 {else}
                                 <option value="UNIDAD">UNIDAD</option>
@@ -402,7 +406,7 @@
                         </td>
                         <td>
                            <input type="text" class="form-control text-right" id="neto_{$counter}" name="neto_{$counter}"
-                                  onchange="ajustar_neto('{$counter}')" onclick="this.select()" autocomplete="off"/> 
+                                  onchange="ajustar_neto('{$counter}')" onclick="this.select()" autocomplete="off"/>
                         </td>
                         <td>
                            <select class="form-control" id="iva_{$counter}" name="iva_{$counter}" onchange="ajustar_iva('{$counter}')">
@@ -455,14 +459,14 @@
                                   value="0" onchange="recalcular()" autocomplete="off"/>
                         </td>
                      </tr>
-                     {if="$fsc->user->admin AND FS_DB_HISTORY"}
+                     {if="$fsc->user->admin"}
                      <tr>
                         <td colspan="6"></td>
                         <td class="text-right">{$fsc->show_precio($fsc->pedido->neto, $fsc->pedido->coddivisa)}</td>
                         <td class="text-right">{$fsc->show_precio($fsc->pedido->totaliva, $fsc->pedido->coddivisa)}</td>
                         <td class="recargo text-right">{$fsc->show_precio($fsc->pedido->totalrecargo, $fsc->pedido->coddivisa)}</td>
                         <td class="irpf text-right">{$fsc->show_precio($fsc->pedido->totalirpf, $fsc->pedido->coddivisa)}</td>
-                        <td class="text-right">{$fsc->show_precio($fsc->pedido->total, $fsc->pedido->coddivisa)}</td> 
+                        <td class="text-right">{$fsc->show_precio($fsc->pedido->total, $fsc->pedido->coddivisa)}</td>
                      </tr>
                      {/if}
                   </tbody>
@@ -486,7 +490,7 @@
                   <tr>
                      <td>
                         <a target="_blank" href="{$value->articulo_url()}">{$value->referencia}</a> {$value->descripcion()}
-                      </td>
+                     </td>
                      <td class="text-right">{$value->cantidad}</td>
                      <td class="text-right">{$fsc->show_precio($value->pvpunitario, $fsc->pedido->coddivisa, TRUE, FS_NF0_ART)}</td>
                      <td class="text-right">{$fsc->show_numero($value->dtopor, 2)} %</td>
@@ -704,6 +708,11 @@
             <li id="li_mis_articulos">
                <a href="#" id="b_mis_articulos">Mi catálogo</a>
             </li>
+            <li id="li_kiwimaru">
+               <a href="#" id="b_kiwimaru">
+                  <span class="glyphicon glyphicon-globe"></span>
+               </a>
+            </li>
             <li id="li_nuevo_articulo">
                <a href="#" id="b_nuevo_articulo">
                   <span class="glyphicon glyphicon-plus"></span>&nbsp; Nuevo
@@ -711,6 +720,7 @@
             </li>
          </ul>
          <div id="search_results"></div>
+         <div id="kiwimaru_results"></div>
          <div id="nuevo_articulo" class="modal-body" style="display: none;">
             <form name="f_nuevo_articulo" action="{$fsc->url()}" method="post" class="form">
                <input type="hidden" name="codproveedor" value="{$fsc->pedido->codproveedor}"/>
@@ -832,7 +842,6 @@
       </div>
    </div>
 </div>
-
 <div class="modal fade" id="modal_imprimir_pedido">
    <div class="modal-dialog">
       <div class="modal-content">
@@ -903,7 +912,7 @@
                </div>
                <div class="form-group">
                   <textarea class="form-control" name="mensaje" rows="6">Buenos días, le adjunto mi {#FS_PEDIDO#} {$fsc->pedido->codigo}.
-                     {$fsc->empresa->email_config['mail_firma']}</textarea>
+                       {$fsc->empresa->email_config['mail_firma']}</textarea>
                   <p class="help-block">
                      <a href="index.php?page=admin_empresa#email">Editar la firma</a>
                   </p>

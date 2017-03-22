@@ -26,7 +26,6 @@
       document.f_pedido.ac_cliente.value = '';
       document.f_pedido.ac_cliente.focus();
    }        
-        
    all_umedida = {function="json_encode($fsc->articulo_um->all())"};
    function Convert_um_edit(num){
       var factor_product = 0;
@@ -35,13 +34,13 @@
          if(current.codum == $('#codum_'+num).val()){
             factor_product = current.factor;
          }
-      });
+      })
       factor_product = (factor_product * cant);
       $('#cantidadX_'+num).val(factor_product);
       recalcular();   
    }
    
-   $(document).ready(function () {
+   $(document).ready(function() {
       $('#numlineas').val(numlineas);
       usar_serie();
       usar_almacen();
@@ -53,8 +52,7 @@
          onSelect: function (suggestion) {
             if(suggestion)
             {
-               if(document.f_pedido.cliente.value != suggestion.data && suggestion.data != '')
-               {
+               if(document.f_pedido.cliente.value != suggestion.data && suggestion.data != '') {
                   document.f_pedido.cliente.value = suggestion.data;
                   usar_cliente(suggestion.data);
                }
@@ -404,7 +402,7 @@
                         <td>
                            <input type="hidden" name="idlinea_{$counter}" value="{$value->idlinea}"/>
                            <input type="hidden" name="referencia_{$counter}" value="{$value->referencia}"/>
-                           <input type="hidden" name="codcombinacion_{$counter}" value="{$value->codcombinacion}"/>
+                          <!-- <input type="hidden" name="codcombinacion_{$counter}" value="{$value->codcombinacion}"/>-->
                            {if="$value->idlineapresupuesto"}
                            <div class="input-group">
                               <a target="_blank" href="index.php?page=ventas_presupuesto&id={$value->idpresupuesto}" class="input-group-addon" title="ver {#FS_PRESUPUESTO#}">P</a>
@@ -419,21 +417,21 @@
                            {/if}
                         </td>
                         <td><textarea class="form-control" name="desc_{$counter}" rows="1">{$value->descripcion}</textarea></td>
-                        <td>
-                            {if="$value->codum =='UNIDAD' "}
+                         <td>
+                             {if="$value->codum =='UNIDAD'"}
                             <input type="number" step="any" id="cantidad_{$counter}" class="form-control text-right" name="cantidad_{$counter}"
                                    value="{$value->cantidad}" onkeyup="recalcular()" onchange="recalcular();Convert_um_edit('{$counter}')" />
                             {else}
-                             <input type="number" step="any" id="cantidad_{$counter}" class="form-control text-right" name="cantidad_{$counter}"
+                            <input type="number" step="any" id="cantidad_{$counter}" class="form-control text-right" name="cantidad_{$counter}"
                                     value="{$value->cantidad_um}"  onkeyup="recalcular()"  onchange="recalcular();Convert_um_edit('{$counter}')" autocomplete="off" value="1"/>
-                            {/if}
-                        </td>
+                              {/if}
+                       </td>
                         <td>
                             <input type="text" id="cantidadX_{$counter}" class="form-control text-right" name="cantidadX_{$counter}"
                                    value="{$value->cantidad}"  disabled="disable" onchange="recalcular()"/>
                         </td>
                         <td>
-                           <select class="form-control" id="codum_{$counter}" name="codum_{$counter}"  onchange="convertir_um{$counter})">
+                           <select class="form-control" id="codum_{$counter}" name="codum_{$counter}"  onchange="Convert_um_edit({$counter})">
                               {if="$value->codum == ''"}
                               <option value="UNIDAD" selected="">UNIDAD</option>
                               {else}
