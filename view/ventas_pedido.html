@@ -25,8 +25,10 @@
       document.f_pedido.ac_cliente.readOnly = false;
       document.f_pedido.ac_cliente.value = '';
       document.f_pedido.ac_cliente.focus();
-   }        
+   }
+
    all_umedida = {function="json_encode($fsc->articulo_um->all())"};
+
    function Convert_um_edit(num){
       var factor_product = 0;
       var cant = parseFloat($('#cantidad_'+num).val());
@@ -37,9 +39,9 @@
       })
       factor_product = (factor_product * cant);
       $('#cantidadX_'+num).val(factor_product);
-      recalcular();   
+      recalcular();
    }
-   
+
    $(document).ready(function() {
       $('#numlineas').val(numlineas);
       usar_serie();
@@ -52,7 +54,8 @@
          onSelect: function (suggestion) {
             if(suggestion)
             {
-               if(document.f_pedido.cliente.value != suggestion.data && suggestion.data != '') {
+               if(document.f_pedido.cliente.value != suggestion.data && suggestion.data != '')
+               {
                   document.f_pedido.cliente.value = suggestion.data;
                   usar_cliente(suggestion.data);
                }
@@ -127,7 +130,7 @@
                   {/if}
                {/loop}
             </div>
-            
+
             <div class="btn-group">
                {if="$fsc->pedido->idalbaran"}
                <a class="btn btn-sm btn-info text-capitalize" href="{$fsc->pedido->albaran_url()}">
@@ -236,7 +239,7 @@
                {if="$fsc->cliente_s"}
                   {if="$fsc->cliente_s->nombre!=$fsc->pedido->nombrecliente"}
                   <li>
-                     <a href="#" onclick="alert('Cliente conocido como: {$fsc->cliente_s->nombre}')">
+                     <a href="#" onclick="bootbox.alert({message: 'Cliente conocido como: {$fsc->cliente_s->nombre}',title: '<b>Atención</b>'});">
                         <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
                      </a>
                   </li>
@@ -1022,7 +1025,7 @@
                               </span>
                            </div>
                            <p class="help-block">Dejar en blanco para asignar una referencia automática.</p>
-                        </div>   
+                        </div>
                      </div>
                      <div class="col-sm-8">
                         <div class="form-group">
@@ -1142,7 +1145,9 @@
          {/loop}
          </div>
          <div class="modal-footer">
-            <a href="index.php?page=admin_empresa#impresion" target="_blank">Opciones de impresión</a>
+            <a href="index.php?page=admin_empresa#impresion" target="_blank">
+               <span class="glyphicon glyphicon-wrench"></span>&nbsp; Opciones de impresión
+            </a>
          </div>
       </div>
    </div>

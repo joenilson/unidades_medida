@@ -179,7 +179,7 @@ function recalcular()
             /*Validando la vista para que el calculo se realice de la mejor manera .
           * Valido tanto para la creacion de un nuevo pedido y la edicion de este*/
          var minut = nueva_venta_url.substr(28,39);
-         
+
          if(minut !='tipo=pedido'){
          if($("#codum_"+i).val()=='UNIDAD'){
          l_uds = parseFloat($("#cantidad_"+i).val());
@@ -381,14 +381,20 @@ function ajustar_iva(num)
          $("#iva_"+num).val(0);
          $("#recargo_"+num).val(0);
 
-         alert('El cliente tiene regimen de IVA: '+cliente.regimeniva);
+         bootbox.alert({
+            message: 'El cliente tiene regimen de IVA: '+cliente.regimeniva,
+            title: "<b>Atención</b>"
+         });
       }
       else if(siniva && $("#iva_"+num).val() != 0)
       {
          $("#iva_"+num).val(0);
          $("#recargo_"+num).val(0);
 
-         alert('La serie selecciona es sin IVA.');
+         bootbox.alert({
+            message: 'La serie selecciona es sin IVA.',
+            title: "<b>Atención</b>"
+         });
       }
       else if(cliente.recargo)
       {
@@ -406,7 +412,7 @@ function ajustar_iva(num)
 }
 
 function convertir_um(num){
-   
+
    var um_destino = $("#um_"+num).val();
    var factor_actual = $("#factor_"+num).val();
    var precio = $("#pvp_"+num).val();
@@ -434,7 +440,6 @@ function convertir_um(num){
    //Cuando actualizamos todos los valores recalculamos
    recalcular();
 }
-
 
 function aux_all_impuestos(num,codimpuesto)
 {
@@ -478,7 +483,7 @@ function aux_all_impuestos(num,codimpuesto)
 }
 
 function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,codcombinacion,um_base,factor_base,listaUM)
-{  
+{
    if(typeof codcombinacion == 'undefined')
    {
       codcombinacion = '';
@@ -488,6 +493,7 @@ function add_articulo(ref,desc,pvp,dto,codimpuesto,cantidad,codcombinacion,um_ba
    $("#lineas_albaran").append("<tr id=\"linea_"+numlineas+"\">\n\
       <td><input type=\"hidden\" name=\"idlinea_"+numlineas+"\" value=\"-1\"/>\n\
          <input type=\"hidden\" name=\"referencia_"+numlineas+"\" value=\""+ref+"\"/>\n\
+         <input type=\"hidden\" name=\"codcombinacion_"+numlineas+"\" value=\""+codcombinacion+"\"/>\n\
          <div class=\"form-control\"><small><a target=\"_blank\" href=\"index.php?page=ventas_articulo&ref="+ref+"\">"+ref+"</a></small></div></td>\n\
       <td><textarea class=\"form-control\" id=\"desc_"+numlineas+"\" name=\"desc_"+numlineas+"\" rows=\"1\">"+desc+"</textarea></td>\n\
       <td><input type=\""+input_number+"\" step=\"any\" id=\"cantidad_"+numlineas+"\" class=\"form-control text-right\" name=\"cantidad_"+numlineas+
@@ -530,17 +536,17 @@ function aux_all_um(num,um_base,factor_base,listaUM)
        nueva_lista_um.factor = line[1];
        buscador[line[0]] = nueva_lista_um;
    }
-    
+
    var html = "<td><select id=\"um_"+num+"\" class=\"form-control\" name=\"um_"+num+"\" onchange=\"convertir_um('"+num+"')\">";
-  
+
     for(var i=0; i<all_um.length; i++)
    {
       if(um_base === all_um[i].codum){
         html += "<option value=\""+all_um[i].codum+"|1"+"\" selected=\"\">"+all_um[i].codum+"</option>";
-        
-   
+
+
       }else{
-          
+
         if(buscador[all_um[i].codum]){
            html += "<option value=\""+all_um[i].codum+"|"+buscador[all_um[i].codum].factor+"\">"+all_um[i].codum+"</option>";
         }
@@ -632,8 +638,8 @@ function new_articulo()
             $("#li_mis_articulos").addClass('active');
             $("#search_results").show();
             $("#nuevo_articulo").hide();
-            console.log(datos[0].listaUM + 'Save');
-            add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].pvp, 0, datos[0].codimpuesto, 1, datos[0].umBase, datos[0].listaUM);
+
+            add_articulo(datos[0].referencia, Base64.encode(datos[0].descripcion), datos[0].pvp, 0, datos[0].codimpuesto, 1, datos[0].codcombinacion, datos[0].umBase, datos[0].listaUM);
          }
       });
    }
@@ -710,16 +716,17 @@ function buscar_articulos()
                   {
                      var funcion = "add_articulo('"+val.referencia+"','"+descripcion+"','"+val.pvp+"','"
                              +val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.codcombinacion+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
+
                      if(val.tipo)
                      {
                         funcion = "add_articulo_"+val.tipo+"('"+val.referencia+"','"+descripcion+"','"
                                 +val.pvp+"','"+val.dtopor+"','"+val.codimpuesto+"','"+val.cantidad+"','"+val.um_base+"','"+val.factor_base+"','"+val.lista_um+"')";
-                               console.log(val.lista_um);
+
                         }
                   }
                   else
                   {
-                     var funcion = "alert('Sin stock.')";
+                     var funcion = "bootbox.alert({message: 'Sin stock.',title: '<b>Atención</b>'});";
                   }
 
                   items.push(tr_aux+"<td><a href=\"#\" onclick=\"get_precios('"+val.referencia+"')\" title=\"más detalles\">\n\

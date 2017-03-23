@@ -54,6 +54,7 @@ class compras_pedido extends fs_controller
    public $medida;
    public $articulo_um;
    public $unidadmedida;
+
    public function __construct()
    {
       parent::__construct(__CLASS__, ucfirst(FS_PEDIDO), 'compras', FALSE, FALSE);
@@ -348,7 +349,7 @@ class compras_pedido extends fs_controller
                      if($value->idlinea == intval($_POST['idlinea_' . $num]))
                      {
                         $encontrada = TRUE;
-                        
+
                         $this->unidadmedida = new unidadmedida();
                         $unidadM = $this->unidadmedida->get($_POST['codum_'. $num]);
                         if($_POST['codum_'.$num] == "UNIDAD"){
@@ -357,7 +358,7 @@ class compras_pedido extends fs_controller
                            $lineas[$k]->codum = $unidadM->codum;
                         }else{
                            $lineas[$k]->cantidad_um = floatval($_POST['cantidad_'.$num]);
-                           $lineas[$k]->cantidad = floatval($_POST['cantidad_' .$num] * $unidadM->cantidad); //Cantidad por el factor de la unidad que no sale. 
+                           $lineas[$k]->cantidad = floatval($_POST['cantidad_' .$num] * $unidadM->cantidad); //Cantidad por el factor de la unidad que no sale.
                            $lineas[$k]->codum = $unidadM->codum;
                         }
                         $lineas[$k]->pvpunitario = floatval($_POST['pvp_' . $num]);
@@ -419,7 +420,7 @@ class compras_pedido extends fs_controller
                         $linea->iva = floatval($_POST['iva_' . $num]);
                         $linea->recargo = floatval($_POST['recargo_' . $num]);
                      }
-                     
+
                      $linea->irpf = floatval($_POST['irpf_' . $num]);
                      $linea->cantidad = floatval($_POST['cantidad_' . $num]);
                      $linea->cantidad_um = floatval($_POST['cantidad_' . $num]);
@@ -432,12 +433,14 @@ class compras_pedido extends fs_controller
                      if($art0)
                      {
                         $linea->referencia = $art0->referencia;
-                        if(!empty($_POST['codcombinacion_' . $num]))
+                        if($_POST['codcombinacion_' . $num])
                         {
                            $linea->codcombinacion = $_POST['codcombinacion_' . $num];
                         }
                      }
-                         if( $linea->save()){
+
+                     if( $linea->save() )
+                     {
                         $this->pedido->neto += $linea->pvptotal;
                         $this->pedido->totaliva += $linea->pvptotal * $linea->iva / 100;
                         $this->pedido->totalirpf += $linea->pvptotal * $linea->irpf / 100;
@@ -460,7 +463,7 @@ class compras_pedido extends fs_controller
             $this->pedido->totalirpf = round($this->pedido->totalirpf, FS_NF0);
             $this->pedido->totalrecargo = round($this->pedido->totalrecargo, FS_NF0);
             $this->pedido->total = $this->pedido->neto + $this->pedido->totaliva - $this->pedido->totalirpf + $this->pedido->totalrecargo;
-            
+
             if( abs(floatval($_POST['atotal']) - $this->pedido->total) >= .02 )
             {
                $this->new_error_msg("El total difiere entre el controlador y la vista (" . $this->pedido->total .

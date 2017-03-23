@@ -1,6 +1,6 @@
 <?php
 /*
- * This file is part of FacturaScripts
+ * This file is part of presupuestos_y_pedidos
  * Copyright (C) 2014-2017  Carlos Garcia Gomez       neorazorx@gmail.com
  * Copyright (C) 2014-2015  Francesc Pineda Segarra   shawe.ewahs@gmail.com
  *
@@ -405,17 +405,17 @@ class ventas_pedido extends fs_controller
                      {
                         $encontrada = TRUE;
                         $this->unidadmedida = new unidadmedida();
-                     $unidadM = $this->unidadmedida->get($_POST['codum_'. $num]);
-                     if($_POST['codum_'.$num] == "UNIDAD"){
+                        $unidadM = $this->unidadmedida->get($_POST['codum_'. $num]);
+                        if($_POST['codum_'.$num] == "UNIDAD"){
 
-                        $lineas[$k]->cantidad_um = floatval($_POST['cantidad_' . $num]);
-                        $lineas[$k]->cantidad =floatval($_POST['cantidad_' . $num]);
-                        $lineas[$k]->codum = $unidadM->codum;
-                     }else{
-                        $lineas[$k]->cantidad_um = floatval($_POST['cantidad_'.$num]);
-                        $lineas[$k]->cantidad = floatval($_POST['cantidad_' .$num] * $unidadM->cantidad); //Cantidad por el factor de la unidad que no sale.
-                        $lineas[$k]->codum = $unidadM->codum;
-                     }
+                           $lineas[$k]->cantidad_um = floatval($_POST['cantidad_' . $num]);
+                           $lineas[$k]->cantidad =floatval($_POST['cantidad_' . $num]);
+                           $lineas[$k]->codum = $unidadM->codum;
+                        }else{
+                           $lineas[$k]->cantidad_um = floatval($_POST['cantidad_'.$num]);
+                           $lineas[$k]->cantidad = floatval($_POST['cantidad_' .$num] * $unidadM->cantidad); //Cantidad por el factor de la unidad que no sale.
+                           $lineas[$k]->codum = $unidadM->codum;
+                        }
                         //$lineas[$k]->cantidad = floatval($_POST['cantidad_' . $num]);
                         $lineas[$k]->pvpunitario = floatval($_POST['pvp_' . $num]);
                         $lineas[$k]->dtopor = floatval($_POST['dto_' . $num]);
@@ -476,7 +476,7 @@ class ventas_pedido extends fs_controller
                         $linea->iva = floatval($_POST['iva_' . $num]);
                         $linea->recargo = floatval($_POST['recargo_' . $num]);
                      }
-                      
+
                      $linea->irpf = floatval($_POST['irpf_'.$num]);
                      $linea->cantidad = floatval($_POST['cantidad_' . $num]);
                      $linea->cantidad_um = floatval($_POST['cantidad_' . $num]);
@@ -489,9 +489,14 @@ class ventas_pedido extends fs_controller
                      if($art0)
                      {
                         $linea->referencia = $art0->referencia;
+                        if($_POST['codcombinacion_' . $num])
+                        {
+                           $linea->codcombinacion = $_POST['codcombinacion_' . $num];
+                        }
                      }
 
-                     if($linea->save()){
+                     if( $linea->save() )
+                     {
                         $this->pedido->neto += $linea->pvptotal;
                         $this->pedido->totaliva += $linea->pvptotal * $linea->iva / 100;
                         $this->pedido->totalirpf += $linea->pvptotal * $linea->irpf / 100;
@@ -523,7 +528,7 @@ class ventas_pedido extends fs_controller
          }
       }
 
-      if( $this->pedido->save())
+      if( $this->pedido->save() )
       {
          $this->new_message(ucfirst(FS_PEDIDO) . " modificado correctamente.");
          $this->new_change(ucfirst(FS_PEDIDO) . ' Cliente ' . $this->pedido->codigo, $this->pedido->url());
@@ -603,8 +608,9 @@ class ventas_pedido extends fs_controller
       }
       else if( $albaran->save() )
       {
-         $continuar = TRUE;
          $art0 = new articulo();
+         $continuar = TRUE;
+         $trazabilidad = FALSE;
 
          foreach($this->pedido->get_lineas() as $l)
          {
@@ -623,6 +629,7 @@ class ventas_pedido extends fs_controller
             $n->pvpunitario = $l->pvpunitario;
             $n->recargo = $l->recargo;
             $n->referencia = $l->referencia;
+            $n->codcombinacion = $l->codcombinacion;
             $n->orden = $l->orden;
             $n->mostrar_cantidad = $l->mostrar_cantidad;
             $n->mostrar_precio = $l->mostrar_precio;
@@ -630,20 +637,23 @@ class ventas_pedido extends fs_controller
             if( $n->save() )
             {
                /// descontamos del stock
-               if( !is_null($n->referencia) )
+               if($n->referencia)
                {
                   $articulo = $art0->get($n->referencia);
                   if($articulo)
                   {
-                     $articulo->sum_stock($albaran->codalmacen, 0 - $l->cantidad);
+                     $articulo->sum_stock($albaran->codalmacen, 0 - $l->cantidad, FALSE, $l->codcombinacion);
+                     if($articulo->trazabilidad)
+                     {
+                        $trazabilidad = TRUE;
+                     }
                   }
                }
             }
             else
             {
-               $continuar = FALSE;
                $this->new_error_msg("¡Imposible guardar la línea el artículo " . $n->referencia . "! ");
-               break;
+               $continuar = FALSE;
             }
          }
 
@@ -656,7 +666,11 @@ class ventas_pedido extends fs_controller
             {
                $this->new_message("<a href='" . $albaran->url() . "'>" . ucfirst(FS_ALBARAN) . '</a> generado correctamente.');
 
-               if( isset($_POST['facturar']) )
+               if($trazabilidad)
+               {
+                  header('Location: index.php?page=ventas_trazabilidad&doc=albaran&id='.$albaran->idalbaran);
+               }
+               else if( isset($_POST['facturar']) )
                {
                   header('Location: '.$albaran->url().'&facturar='.$_POST['facturar'].'&petid='.$this->random_string());
                }
@@ -736,7 +750,7 @@ class ventas_pedido extends fs_controller
             $presupuesto = new presupuesto_cliente($d);
             $this->historico[] = array(
                 'orden' => $orden,
-                'documento' => 'ventas_presupuesto',
+                'documento' => FS_PRESUPUESTO,
                 'modelo' => $presupuesto
             );
             $orden++;
@@ -756,7 +770,7 @@ class ventas_pedido extends fs_controller
                $albaran = new albaran_cliente($d1);
                $this->historico[] = array(
                    'orden' => $orden,
-                   'documento' => 'ventas_albaran',
+                   'documento' => FS_ALBARAN,
                    'modelo' => $albaran
                );
                $orden++;
@@ -774,7 +788,7 @@ class ventas_pedido extends fs_controller
                         $factura = new factura_cliente($d2);
                         $this->historico[] = array(
                             'orden' => $orden,
-                            'documento' => 'ventas_factura',
+                            'documento' => 'factura',
                             'modelo' => $factura
                         );
                         $orden++;

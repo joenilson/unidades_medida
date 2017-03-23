@@ -47,7 +47,7 @@ class nueva_compra extends fs_controller
    public $serie;
    public $tipo;
    public $um;
-   public $articulo_um;   
+   public $articulo_um;
 
    public function __construct()
    {
@@ -549,7 +549,8 @@ class nueva_compra extends fs_controller
                         $linea->iva = floatval($_POST['iva_'.$i]);
                         $linea->recargo = floatval($_POST['recargo_'.$i]);
                      }
-                     else{
+                     else
+                     {
                       $linea->iva = floatval($_POST['iva_'.$i]);
                       $linea->recargo = floatval($_POST['recargo_'.$i]);
                      }
@@ -564,14 +565,14 @@ class nueva_compra extends fs_controller
 
                   //Si el factor es igual al factor_base del articulo entonces en cantidad guardamos el mismo valor
                   if($_POST['factor_'.$i]==$_POST['factor_base_'.$i]){
-                    $linea->cantidad = floatval($_POST['cantidad_'.$i]);
-                    $linea->pvpunitario = floatval($_POST['pvp_'.$i]);
+                     $linea->cantidad = floatval($_POST['cantidad_'.$i]);
+                     $linea->pvpunitario = floatval($_POST['pvp_'.$i]);
                   }else{
-                    //Si el factor es diferente al factor_base entonces
-                    //Convertimos la cantidad a la unidad de medida base
-                    //Guardamos el precio con el pvp de la unidad base
-                    $linea->cantidad = floatval($_POST['cantidad_'.$i]*$_POST['factor_'.$i]);
-                    $linea->pvpunitario = floatval(round($_POST['pvp_'.$i]/$_POST['factor_'.$i],4));
+                     //Si el factor es diferente al factor_base entonces
+                     //Convertimos la cantidad a la unidad de medida base
+                     //Guardamos el precio con el pvp de la unidad base
+                     $linea->cantidad = floatval($_POST['cantidad_'.$i]*$_POST['factor_'.$i]);
+                     $linea->pvpunitario = floatval(round($_POST['pvp_'.$i]/$_POST['factor_'.$i],4));
                   }
 
                   $linea->pvpsindto = ($linea->pvpunitario * $linea->cantidad);
@@ -580,15 +581,13 @@ class nueva_compra extends fs_controller
                   $linea->codum = $umdata[0];
 
                   $articulo = $art0->get($_POST['referencia_'.$i]);
-                  if($articulo){
-                      
+                  if($articulo)
+                  {
                      $linea->referencia = $articulo->referencia;
-                     /*Comente esta combinacion porque no se para que se esta utilizando.*/
-                    
-                     /*if(!empty($_POST['codcombinacion_'.$i]) or $_POST['codcombinacion_'.$i] != NULL)
+                     if($_POST['codcombinacion_'.$i])
                      {
                         $linea->codcombinacion = $_POST['codcombinacion_'.$i];
-                     }*/
+                     }
                   }
 
                   if( $linea->save() )

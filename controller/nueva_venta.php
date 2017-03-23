@@ -81,7 +81,7 @@ class nueva_venta extends fs_controller
       $this->pais = new pais();
       $this->articulo_um = new articulo_unidadmedida();
       $this->um = new unidadmedida();
-      
+
       /// cargamos la configuración
       $fsvar = new fs_var();
       $this->nuevocli_setup = $fsvar->array_get(
@@ -756,10 +756,10 @@ class nueva_venta extends fs_controller
                         $trazabilidad = TRUE;
                      }
 
-                   /*  if($_POST['codcombinacion_'.$i])
+                     if($_POST['codcombinacion_'.$i])
                      {
                         $linea->codcombinacion = $_POST['codcombinacion_'.$i];
-                     }*/
+                     }
                   }
 
                   if( $linea->save() )
@@ -1509,7 +1509,7 @@ class nueva_venta extends fs_controller
                   if($articulo)
                   {
                      $linea->referencia = $articulo->referencia;
-                     if( !empty($_POST['codcombinacion_'.$i]))
+                     if($_POST['codcombinacion_'.$i])
                      {
                         $linea->codcombinacion = $_POST['codcombinacion_'.$i];
                      }
