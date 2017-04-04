@@ -519,6 +519,7 @@ class nueva_compra extends fs_controller
          $pedido->codpago = $forma_pago->codpago;
          $pedido->coddivisa = $divisa->coddivisa;
          $pedido->tasaconv = $divisa->tasaconv_compra;
+
          if($_POST['tasaconv'] != '')
          {
             $pedido->tasaconv = floatval($_POST['tasaconv']);

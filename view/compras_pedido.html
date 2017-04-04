@@ -374,18 +374,9 @@
                         </td>
                           <td>
                             <select class="form-control" id="codum_{$counter}" name="codum_{$counter}"  onchange=" Convert_um_edit('{$counter}')">
-                            {if="$value->codum == ''"}
-                            <option value="UNIDAD" selected="">UNIDAD</option>
-                            {else}
-                            <option value="{$value->codum}" selected="">{$value->codum}</option>
                               {loop="$fsc->articulo_um->get($value->referencia)"}
-                                {if="$value1->referencia==$value->referencia"}
-                                <option value="{$value->codum}" >{$value->codum}</option>
-                                {else}
-                                <option value="UNIDAD">UNIDAD</option>
-                                {/if}
+                            <option value="{$value->codum}" selected="" >{$value->codum}</option>
                               {/loop}
-                            {/if}
                             </select>
                         </td>
                         <td>
